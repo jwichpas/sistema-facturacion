@@ -96,6 +96,90 @@ create table if not exists sunat.ubigeo (
 
 ## 02 – Organización (companies, branches, warehouses, zones)
 
+-- Create roles table
+-- This table stores role definitions with permissions
+
+CREATE TABLE IF NOT EXISTS public.roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    permissions JSONB NOT NULL DEFAULT '[]'::jsonb,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_roles_name ON public.roles(name);
+CREATE INDEX IF NOT EXISTS idx_roles_is_active ON public.roles(is_active);
+CREATE INDEX IF NOT EXISTS idx_roles_permissions ON public.roles USING GIN(permissions);
+
+-- Add unique constraint for role name
+ALTER TABLE public.roles 
+ADD CONSTRAINT uq_roles_name UNIQUE (name);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies
+CREATE POLICY "Authenticated users can view roles" ON public.roles
+    FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Only admins can manage roles" ON public.roles
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.user_companies uc
+            JOIN public.roles r ON uc.role_id = r.id
+            WHERE uc.user_id = auth.uid()
+            AND uc.is_active = true
+            AND r.permissions ? 'admin.roles'
+        )
+    );
+
+-- Create trigger for updated_at
+CREATE TRIGGER update_roles_updated_at 
+    BEFORE UPDATE ON public.roles 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert default roles
+INSERT INTO public.roles (name, description, permissions) VALUES
+('Super Admin', 'Administrador del sistema con todos los permisos', '["*"]'::jsonb),
+('Admin', 'Administrador de empresa', '[
+    "admin.users", "admin.companies", "admin.settings",
+    "products.view", "products.create", "products.update", "products.delete", "products.manage",
+    "inventory.view", "inventory.create", "inventory.update", "inventory.delete", "inventory.manage", "inventory.transfer",
+    "sales.view", "sales.create", "sales.update", "sales.delete", "sales.reports",
+    "invoices.view", "invoices.create", "invoices.update", "invoices.delete", "invoices.sunat",
+    "customers.view", "customers.create", "customers.update", "customers.delete"
+]'::jsonb),
+('Manager', 'Gerente con permisos de gestión', '[
+    "products.view", "products.create", "products.update", "products.manage",
+    "inventory.view", "inventory.create", "inventory.update", "inventory.manage", "inventory.transfer",
+    "sales.view", "sales.create", "sales.update", "sales.reports",
+    "invoices.view", "invoices.create", "invoices.update", "invoices.sunat",
+    "customers.view", "customers.create", "customers.update"
+]'::jsonb),
+('Seller', 'Vendedor con permisos básicos', '[
+    "products.view",
+    "inventory.view",
+    "sales.view", "sales.create",
+    "invoices.view", "invoices.create",
+    "customers.view", "customers.create", "customers.update"
+]'::jsonb),
+('Viewer', 'Solo lectura', '[
+    "products.view",
+    "inventory.view",
+    "sales.view",
+    "invoices.view",
+    "customers.view"
+]'::jsonb)
+ON CONFLICT (name) DO NOTHING;
+
+-- Grant permissions
+GRANT SELECT ON public.roles TO authenticated;
+GRANT INSERT, UPDATE ON public.roles TO authenticated;
+
 create table if not exists companies (
   id uuid primary key default gen_random_uuid(),
   ruc varchar(11) not null unique,
@@ -111,6 +195,67 @@ create table if not exists companies (
   updated_at timestamptz default now(),
   deleted_at timestamptz
 );
+
+CREATE TABLE IF NOT EXISTS public.user_companies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    role_id UUID NOT NULL REFERENCES public.roles(id) ON DELETE RESTRICT,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_user_companies_user_id ON public.user_companies(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_companies_company_id ON public.user_companies(company_id);
+CREATE INDEX IF NOT EXISTS idx_user_companies_role_id ON public.user_companies(role_id);
+CREATE INDEX IF NOT EXISTS idx_user_companies_is_active ON public.user_companies(is_active);
+CREATE INDEX IF NOT EXISTS idx_user_companies_user_company ON public.user_companies(user_id, company_id);
+
+-- Add unique constraint to prevent duplicate user-company relationships
+ALTER TABLE public.user_companies 
+ADD CONSTRAINT uq_user_companies_user_company UNIQUE (user_id, company_id);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.user_companies ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies
+CREATE POLICY "Users can view their own company relationships" ON public.user_companies
+    FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Users can view company relationships for their companies" ON public.user_companies
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.user_companies uc
+            WHERE uc.user_id = auth.uid()
+            AND uc.company_id = user_companies.company_id
+            AND uc.is_active = true
+        )
+    );
+
+CREATE POLICY "Admins can manage user-company relationships" ON public.user_companies
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.user_companies uc
+            JOIN public.roles r ON uc.role_id = r.id
+            WHERE uc.user_id = auth.uid()
+            AND uc.company_id = user_companies.company_id
+            AND uc.is_active = true
+            AND r.permissions ? 'admin.users'
+        )
+    );
+
+-- Create trigger for updated_at
+CREATE TRIGGER update_user_companies_updated_at 
+    BEFORE UPDATE ON public.user_companies 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Grant permissions
+GRANT SELECT ON public.user_companies TO authenticated;
+GRANT INSERT, UPDATE ON public.user_companies TO authenticated;
+
 
 create table if not exists branches (
   id uuid primary key default gen_random_uuid(),

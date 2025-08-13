@@ -1,4 +1,5 @@
 // Core ERP System Types
+export type { Database } from './database'
 
 // Company and Organization Types
 export interface Company {
