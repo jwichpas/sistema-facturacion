@@ -1,21 +1,10 @@
-
-# sistema-erp-functions.md
-
-> Funciones, triggers y vistas materializadas para acelerar consultas y mantener la consistencia del **kardex**, precios y márgenes en tiempo real.
-
----
-
-## 1) Helpers para fechas/períodos
-
+-- Helpers para fechas/períodos
 create or replace function period_key(p_date date)
 returns text language sql immutable as $$
   select to_char(date_trunc('month', p_date), 'YYYY-MM');
 $$;
 
----
-
-## 2) Actualización de `warehouse_stock` (stock agregado)
-
+-- Actualización de warehouse_stock (stock agregado)
 create or replace function sync_warehouse_stock(p_company uuid, p_warehouse uuid, p_product uuid)
 returns void language plpgsql as $$
 declare v_qty numeric(18,6);
@@ -29,10 +18,7 @@ begin
   on conflict (warehouse_id, product_id) do update set balance_qty=excluded.balance_qty;
 end$$;
 
----
-
-## 3) Triggers de compras y ventas → kardex + historial de precios
-
+-- Triggers de compras y ventas → kardex + historial de precios
 create or replace function f_after_purchase_item()
 returns trigger language plpgsql as $$
 begin
@@ -65,7 +51,6 @@ drop trigger if exists trg_after_purchase_item on purchase_doc_items;
 create trigger trg_after_purchase_item
 after insert on purchase_doc_items
 for each row execute function f_after_purchase_item();
-
 
 create or replace function f_after_sales_item()
 returns trigger language plpgsql as $$
@@ -105,10 +90,7 @@ create trigger trg_after_sales_item
 after insert on sales_doc_items
 for each row execute function f_after_sales_item();
 
----
-
-## 4) Función para recalcular saldos y costos (promedio móvil) por período
-
+-- Función para recalcular saldos y costos (promedio móvil) por período
 create or replace function recalc_inventory_average(p_company uuid, p_product uuid, p_period text)
 returns void language plpgsql as $$
 declare
@@ -147,12 +129,7 @@ begin
   end loop;
 end$$;
 
-> Úsala cuando cargues compras/ventas históricas o hagas migraciones de datos.
-
----
-
-## 5) Materialized views para reportes SUNAT y dashboard
-
+-- Materialized views para reportes SUNAT y dashboard
 -- Resumen mensual por producto (para 12.1/13.1)
 create materialized view if not exists mv_kardex_mensual as
 select company_id,
@@ -173,10 +150,7 @@ begin
   refresh materialized view concurrently mv_kardex_mensual;
 end$$;
 
----
-
-## 6) Funciones utilitarias
-
+-- Funciones utilitarias
 -- Obtiene stock por almacén y producto rápidamente
 create or replace function get_stock(p_company uuid, p_warehouse uuid, p_product uuid)
 returns numeric language sql stable as $$
@@ -202,10 +176,7 @@ begin
   return v_id;
 end$$;
 
----
-
-## 7) Vistas de utilidad/margen en tiempo real
-
+-- Vistas de utilidad/margen en tiempo real
 create or replace view v_sales_margin as
 select s.company_id, s.id as sales_doc_id, si.id as sales_item_id, si.product_id,
        si.quantity, si.unit_price, (si.quantity * si.unit_price) as revenue,
@@ -220,10 +191,7 @@ left join lateral (
   order by created_at desc limit 1
 ) sl on true;
 
----
-
-## 8) Hooks para transferencias (doble asiento en kardex)
-
+-- Hooks para transferencias (doble asiento en kardex)
 create or replace function post_transfer_to_ledger(p_transfer uuid)
 returns void language plpgsql as $$
 declare r record; v_company uuid; v_doc_series text; v_doc_number text;

@@ -59,77 +59,109 @@
         <!-- Notifications -->
         <div class="relative">
           <button
-            @click="showNotifications = !showNotifications"
+            @click="handleNotificationToggle"
             class="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
           >
             <Bell class="h-5 w-5" />
             <span
-              v-if="uiStore.unreadNotificationCount > 0"
+              v-if="notificationsStore.unreadCount.value > 0"
               class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white"
             >
-              {{ uiStore.unreadNotificationCount > 9 ? '9+' : uiStore.unreadNotificationCount }}
+              {{ notificationsStore.unreadCount.value > 9 ? '9+' : notificationsStore.unreadCount.value }}
             </span>
           </button>
 
           <!-- Notifications dropdown -->
           <div
             v-if="showNotifications"
-            v-click-outside="() => (showNotifications = false)"
-            class="absolute right-0 z-50 mt-2 w-80 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-gray-700"
+            class="absolute right-0 z-50 mt-2 w-96 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-gray-700"
           >
             <div class="p-4">
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between mb-4">
                 <h3 class="text-sm font-medium text-gray-900 dark:text-white">
-                  {{ $t('common.notifications') }}
+                  {{ $t('notifications.title') }}
                 </h3>
-                <button
-                  v-if="uiStore.notifications.length > 0"
-                  @click="uiStore.markAllNotificationsAsRead"
-                  class="text-xs text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
-                >
-                  {{ $t('common.markAllAsRead') }}
-                </button>
+                <div class="flex items-center space-x-2">
+                  <button
+                    @click="handleMarkAllAsRead"
+                    class="text-xs text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+                  >
+                    {{ $t('notifications.markAllAsRead') }}
+                  </button>
+                  <button
+                    @click="handleRefreshNotifications"
+                    class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                  >
+                    🔄
+                  </button>
+                </div>
               </div>
 
-              <div class="mt-4 max-h-64 overflow-y-auto">
-                <div
-                  v-if="uiStore.notifications.length === 0"
-                  class="py-4 text-center text-sm text-gray-500 dark:text-gray-400"
-                >
-                  {{ $t('common.noNotifications') }}
-                </div>
-
-                <div
-                  v-for="notification in uiStore.notifications"
-                  :key="notification.id"
-                  :class="[
-                    'mb-2 rounded-lg p-3 text-sm',
-                    {
-                      'bg-gray-50 dark:bg-gray-700': notification.read,
-                      'bg-indigo-50 dark:bg-indigo-900/20': !notification.read,
-                    },
-                  ]"
-                >
-                  <div class="flex items-start justify-between">
-                    <div class="flex-1">
-                      <p class="font-medium text-gray-900 dark:text-white">
-                        {{ notification.title }}
+              <div class="max-h-80 overflow-y-auto">
+                <!-- Real notifications from database -->
+                <div v-if="notificationsStore.notifications.value.length > 0" class="space-y-2">
+                  <div
+                    v-for="notification in notificationsStore.notifications.value"
+                    :key="(notification as unknown as Notification).id"
+                    @click="handleNotificationClick(notification as unknown as Notification)"
+                    :class="[
+                      'flex items-start space-x-3 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer',
+                      {
+                        'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500': !(notification as unknown as Notification).read_at,
+                        'opacity-70': (notification as unknown as Notification).read_at
+                      }
+                    ]"
+                  >
+                    <div class="flex-shrink-0">
+                      <div :class="[
+                        'h-8 w-8 rounded-full flex items-center justify-center',
+                        getNotificationIconStyle((notification as unknown as Notification).type)
+                      ]">
+                        <Bell class="h-4 w-4" :class="getNotificationIconColor((notification as unknown as Notification).type)" />
+                      </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                          {{ (notification as unknown as Notification).title }}
+                        </p>
+                        <span
+                          v-if="!(notification as unknown as Notification).read_at"
+                          :class="['h-2 w-2 rounded-full', getNotificationDotColor((notification as unknown as Notification).type)]"
+                        ></span>
+                      </div>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        {{ (notification as unknown as Notification).message }}
                       </p>
-                      <p class="mt-1 text-gray-600 dark:text-gray-300">
-                        {{ notification.message }}
-                      </p>
-                      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        {{ formatDate(notification.timestamp) }}
+                      <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                        {{ notificationsStore.formatRelativeTime((notification as unknown as Notification).created_at) }}
                       </p>
                     </div>
-                    <button
-                      @click="uiStore.removeNotification(notification.id)"
-                      class="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                      <X class="h-4 w-4" />
-                    </button>
+                    <div class="flex-shrink-0">
+                      <button
+                        @click.stop="handleDeleteNotification((notification as unknown as Notification).id)"
+                        class="text-gray-400 hover:text-gray-600"
+                      >
+                        <span class="sr-only">Cerrar</span>
+                        ×
+                      </button>
+                    </div>
                   </div>
                 </div>
+
+                <!-- Empty state -->
+                <div v-else class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  {{ $t('notifications.empty') }}
+                </div>
+              </div>
+
+              <div class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
+                <button
+                  @click="showNotifications = false"
+                  class="w-full text-center text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                >
+                  {{ $t('notifications.viewAll') }}
+                </button>
               </div>
             </div>
           </div>
@@ -161,26 +193,26 @@
             <div class="p-2">
               <div
                 v-for="company in authStore.availableCompanies"
-                :key="company.id"
-                @click="selectCompany(company)"
+                :key="company.company.id"
+                @click="selectCompany(company.company)"
                 :class="[
                   'flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700',
                   {
                     'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200':
-                      company.id === authStore.currentCompany?.id,
+                      company.company.id === authStore.currentCompany?.id,
                   },
                 ]"
               >
                 <Building2 class="mr-3 h-4 w-4" />
                 <div class="flex-1 overflow-hidden">
                   <p class="truncate font-medium">
-                    {{ company.trade_name || company.legal_name }}
+                    {{ company.company.trade_name || company.company.legal_name }}
                   </p>
                   <p class="truncate text-xs text-gray-500 dark:text-gray-400">
-                    {{ company.ruc }}
+                    {{ company.company.ruc }}
                   </p>
                 </div>
-                <Check v-if="company.id === authStore.currentCompany?.id" class="ml-2 h-4 w-4" />
+                <Check v-if="company.company.id === authStore.currentCompany?.id" class="ml-2 h-4 w-4" />
               </div>
             </div>
           </div>
@@ -246,8 +278,18 @@ import { computed, ref, inject, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
-import { formatDate } from '@/utils/format'
+import { useNotifications } from '@/composables/useNotifications'
 import type { Company } from '@/types'
+
+// Define notification type for better TypeScript support
+interface Notification {
+  id: string
+  title: string
+  message: string
+  type: string
+  read_at: string | null
+  created_at: string
+}
 import {
   Menu,
   Search,
@@ -260,11 +302,13 @@ import {
   User,
   Settings,
   LogOut,
-  X,
+  // X,
+  // RotateCw,
 } from 'lucide-vue-next'
 
 const uiStore = useUIStore()
 const authStore = useAuthStore()
+const notificationsStore = useNotifications()
 const route = useRoute()
 const router = useRouter()
 
@@ -331,6 +375,66 @@ const handleLogout = async () => {
       message: 'No se pudo cerrar sesión. Inténtalo de nuevo.',
     })
   }
+}
+
+// Notification methods
+const handleNotificationToggle = () => {
+  console.log('Notification button clicked, current state:', showNotifications.value)
+  showNotifications.value = !showNotifications.value
+  console.log('New state:', showNotifications.value)
+}
+
+const handleMarkAllAsRead = async () => {
+  console.log('Mark all as read clicked')
+  await notificationsStore.markAllAsRead()
+  showNotifications.value = false
+}
+
+const handleRefreshNotifications = async () => {
+  console.log('Refresh notifications clicked')
+  await notificationsStore.loadNotifications()
+}
+
+const handleNotificationClick = async (notification: Notification) => {
+  if (!notification.read_at) {
+    await notificationsStore.markAsRead(notification.id)
+  }
+  // Here you could add navigation logic based on notification type/data
+}
+
+const handleDeleteNotification = async (notificationId: string) => {
+  await notificationsStore.deleteNotification(notificationId)
+}
+
+// Helper functions for notification styling
+const getNotificationIconStyle = (type: string) => {
+  const styles = {
+    info: 'bg-blue-100',
+    warning: 'bg-yellow-100',
+    success: 'bg-green-100',
+    error: 'bg-red-100'
+  }
+  return styles[type as keyof typeof styles] || styles.info
+}
+
+const getNotificationIconColor = (type: string) => {
+  const colors = {
+    info: 'text-blue-600',
+    warning: 'text-yellow-600',
+    success: 'text-green-600',
+    error: 'text-red-600'
+  }
+  return colors[type as keyof typeof colors] || colors.info
+}
+
+const getNotificationDotColor = (type: string) => {
+  const colors = {
+    info: 'bg-blue-500',
+    warning: 'bg-yellow-500',
+    success: 'bg-green-500',
+    error: 'bg-red-500'
+  }
+  return colors[type as keyof typeof colors] || colors.info
 }
 
 // Global search keyboard shortcut

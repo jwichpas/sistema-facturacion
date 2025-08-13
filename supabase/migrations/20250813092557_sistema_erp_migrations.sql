@@ -1,26 +1,17 @@
-
-# sistema-erp-migrations.md
-
-> Migraciones listas para **Supabase** (PostgreSQL). Ordenadas por lotes para facilitar despliegue con Supabase CLI (`supabase db reset` / `supabase db push`).  
-> Todas las instrucciones están en bloques `sql`. Puedes dividirlas en archivos `migration.sql` por lote si prefieres.
-
----
-
-## 00 – Extensiones y configuración base
-
 -- Habilitar extensiones comunes en Supabase
 create extension if not exists "uuid-ossp";
 create extension if not exists "pgcrypto";
 create extension if not exists "pg_trgm";
 create extension if not exists "btree_gin";
 
----
-
-## 01 – Catálogos SUNAT y Ubigeo (esquema `sunat`)
-
-> **Nota:** Los catálogos SUNAT son grandes. Aquí se crean las estructuras mínimas y claves para FK.
-> Carga los datos desde tu archivo o fuente oficial (CSV/MD). Puedes usar `COPY` o `INSERT`.  
-> **Recomendación:** mantenerlos en esquema aparte `sunat` para desacoplarlos del dominio.
+-- Función para actualizar updated_at
+create or replace function update_updated_at_column()
+returns trigger as $$
+begin
+    new.updated_at = timezone('utc'::text, now());
+    return new;
+end;
+$$ language plpgsql;
 
 create schema if not exists sunat;
 
@@ -86,19 +77,8 @@ create table if not exists sunat.ubigeo (
   distrito text
 );
 
-> **Carga de datos** (ejemplo):  
-> ```sql
-> -- COPY sunat.cat_06_doc_identidad(code, descripcion) FROM '.../cat_06.csv' csv header;
-> -- COPY sunat.ubigeo(code, departamento, provincia, distrito) FROM '.../ubigeo.csv' csv header;
-> ```
-
----
-
-## 02 – Organización (companies, branches, warehouses, zones)
-
 -- Create roles table
 -- This table stores role definitions with permissions
-
 CREATE TABLE IF NOT EXISTS public.roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
@@ -120,21 +100,6 @@ ADD CONSTRAINT uq_roles_name UNIQUE (name);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
-
--- Create RLS policies
-CREATE POLICY "Authenticated users can view roles" ON public.roles
-    FOR SELECT TO authenticated USING (true);
-
-CREATE POLICY "Only admins can manage roles" ON public.roles
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.user_companies uc
-            JOIN public.roles r ON uc.role_id = r.id
-            WHERE uc.user_id = auth.uid()
-            AND uc.is_active = true
-            AND r.permissions ? 'admin.roles'
-        )
-    );
 
 -- Create trigger for updated_at
 CREATE TRIGGER update_roles_updated_at 
@@ -176,10 +141,6 @@ INSERT INTO public.roles (name, description, permissions) VALUES
 ]'::jsonb)
 ON CONFLICT (name) DO NOTHING;
 
--- Grant permissions
-GRANT SELECT ON public.roles TO authenticated;
-GRANT INSERT, UPDATE ON public.roles TO authenticated;
-
 create table if not exists companies (
   id uuid primary key default gen_random_uuid(),
   ruc varchar(11) not null unique,
@@ -198,7 +159,7 @@ create table if not exists companies (
 
 CREATE TABLE IF NOT EXISTS public.user_companies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
     role_id UUID NOT NULL REFERENCES public.roles(id) ON DELETE RESTRICT,
     is_active BOOLEAN NOT NULL DEFAULT true,
@@ -220,42 +181,11 @@ ADD CONSTRAINT uq_user_companies_user_company UNIQUE (user_id, company_id);
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.user_companies ENABLE ROW LEVEL SECURITY;
 
--- Create RLS policies
-CREATE POLICY "Users can view their own company relationships" ON public.user_companies
-    FOR SELECT USING (user_id = auth.uid());
-
-CREATE POLICY "Users can view company relationships for their companies" ON public.user_companies
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.user_companies uc
-            WHERE uc.user_id = auth.uid()
-            AND uc.company_id = user_companies.company_id
-            AND uc.is_active = true
-        )
-    );
-
-CREATE POLICY "Admins can manage user-company relationships" ON public.user_companies
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.user_companies uc
-            JOIN public.roles r ON uc.role_id = r.id
-            WHERE uc.user_id = auth.uid()
-            AND uc.company_id = user_companies.company_id
-            AND uc.is_active = true
-            AND r.permissions ? 'admin.users'
-        )
-    );
-
 -- Create trigger for updated_at
 CREATE TRIGGER update_user_companies_updated_at 
     BEFORE UPDATE ON public.user_companies 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
-
--- Grant permissions
-GRANT SELECT ON public.user_companies TO authenticated;
-GRANT INSERT, UPDATE ON public.user_companies TO authenticated;
-
 
 create table if not exists branches (
   id uuid primary key default gen_random_uuid(),
@@ -279,7 +209,6 @@ create table if not exists warehouses (
   width numeric(18,6) not null default 0,
   height numeric(18,6) not null default 0,
   length numeric(18,6) not null default 0,
-  volume_m3 generated always as (width * height * length) stored,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   deleted_at timestamptz,
@@ -296,16 +225,11 @@ create table if not exists warehouse_zones (
   height numeric(18,6) not null default 0,
   length numeric(18,6) not null default 0,
   capacity_kg numeric(18,6),
-  volume_m3 generated always as (width * height * length) stored,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   deleted_at timestamptz,
   unique(warehouse_id, code)
 );
-
----
-
-## 03 – Parties (clientes/proveedores), contactos
 
 create table if not exists parties (
   id uuid primary key default gen_random_uuid(),
@@ -318,10 +242,7 @@ create table if not exists parties (
   apellido_materno text,
   nombres text,
   razon_social text,
-  fullname text generated always as (
-    coalesce(razon_social,
-      trim(coalesce(apellido_paterno,'') || ' ' || coalesce(apellido_materno,'') || ' ' || coalesce(nombres,'')))
-  ) stored,
+  fullname text,
   email text,
   phone text,
   address text,
@@ -346,10 +267,6 @@ create table if not exists party_contacts (
   updated_at timestamptz default now(),
   deleted_at timestamptz
 );
-
----
-
-## 04 – Catálogos producto y productos
 
 create table if not exists brands (
   id uuid primary key default gen_random_uuid(),
@@ -388,7 +305,6 @@ create table if not exists products (
   height numeric(18,6) default 0,
   length numeric(18,6) default 0,
   weight_kg numeric(18,6) default 0,
-  volume_m3 generated always as (coalesce(width,0)*coalesce(height,0)*coalesce(length,0)) stored,
   is_serialized boolean default false,
   is_batch_controlled boolean default false,
   min_stock numeric(18,6) default 0,
@@ -417,10 +333,6 @@ create table if not exists product_codes (
   code_value text not null,
   unique(product_id, code_type, code_value)
 );
-
----
-
-## 05 – Precios de compra y listas de precios
 
 create table if not exists product_purchase_prices (
   id uuid primary key default gen_random_uuid(),
@@ -459,10 +371,6 @@ create table if not exists price_list_items (
   unique(price_list_id, product_id, valid_from)
 );
 
----
-
-## 06 – Vehículos y choferes
-
 create table if not exists vehicles (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references companies(id) on delete cascade,
@@ -489,10 +397,6 @@ create table if not exists drivers (
   updated_at timestamptz default now(),
   unique(company_id, license_number)
 );
-
----
-
-## 07 – Documentos de ventas (Greenter) y compras
 
 create table if not exists sales_docs (
   id uuid primary key default gen_random_uuid(),
@@ -585,10 +489,6 @@ create table if not exists purchase_doc_items (
   created_at timestamptz default now()
 );
 
----
-
-## 08 – Inventarios: kardex, transferencias y stock agregado
-
 create table if not exists stock_ledger (
   id uuid primary key default gen_random_uuid(),
   company_id uuid not null references companies(id) on delete cascade,
@@ -645,20 +545,14 @@ create table if not exists warehouse_stock (
   primary key (warehouse_id, product_id)
 );
 
----
-
-## 09 – Índices recomendados
-
+-- Índices recomendados
 create index if not exists idx_stock_ledger_product_date on stock_ledger(company_id, product_id, movement_date);
 create index if not exists idx_sales_unique on sales_docs(company_id, doc_type, series, number);
 create index if not exists idx_purchase_unique on purchase_docs(company_id, doc_type, series, number);
 create index if not exists idx_parties_doc on parties(company_id, doc_type, doc_number);
 create index if not exists idx_products_sku on products(company_id, sku);
 
----
-
-## 10 – Vistas SUNAT (12.1 y 13.1)
-
+-- Vistas SUNAT (12.1 y 13.1)
 create or replace view v_sunat_inventory_header as
 select
   c.legal_name as denominacion_libro,

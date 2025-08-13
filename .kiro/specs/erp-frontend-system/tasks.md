@@ -47,7 +47,7 @@
     - _Requirements: 4.4, 4.5, 14.1, 14.2_
 
 - [ ] 4. Multi-Company Support System
-  - [ ] 4.1 Create company management store and services
+  - [x] 4.1 Create company management store and services
     - Implement company store with current company state and switching logic
     - Create company service for fetching available companies for user
     - Add company context validation and data isolation

@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { authService, AuthenticationError, ValidationError } from '@/services/auth'
+import CompanyService, { type CompanyAccess } from '@/services/company'
 import type { LoginCredentials, SignUpCredentials, UserProfile } from '@/services/auth'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Company } from '@/types'
@@ -11,7 +12,7 @@ interface AuthState {
   user: User | null
   session: Session | null
   currentCompany: Company | null
-  availableCompanies: Company[]
+  availableCompanies: CompanyAccess[]
   userPermissions: string[]
   userRole: string | null
   loading: boolean
@@ -21,18 +22,12 @@ interface AuthState {
 }
 
 // Company access interface
-interface CompanyAccess {
-  company_id: string
-  role: string
-  permissions: string[]
-}
-
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref<User | null>(null)
   const session = ref<Session | null>(null)
   const currentCompany = ref<Company | null>(null)
-  const availableCompanies = ref<Company[]>([])
+  const availableCompanies = ref<CompanyAccess[]>([])
   const userPermissions = ref<string[]>([])
   const userRole = ref<string | null>(null)
   const loading = ref(false)
@@ -191,23 +186,23 @@ export const useAuthStore = defineStore('auth', () => {
     if (!user.value) return
 
     try {
-      const companies = await authService.getUserCompanies(user.value.id)
-      availableCompanies.value = companies
+      const companiesAccess = await CompanyService.getUserCompanies()
+      availableCompanies.value = companiesAccess
 
       // Try to restore current company from localStorage
       const storedCompanyId = localStorage.getItem(STORAGE_KEYS.CURRENT_COMPANY)
       if (storedCompanyId) {
-        const company = companies.find((c) => c.id === storedCompanyId)
-        if (company) {
-          currentCompany.value = company
+        const companyAccess = companiesAccess.find((ca) => ca.company.id === storedCompanyId)
+        if (companyAccess) {
+          currentCompany.value = companyAccess.company
         } else {
           localStorage.removeItem(STORAGE_KEYS.CURRENT_COMPANY)
         }
       }
 
       // If no current company but user has companies, set the first one
-      if (!currentCompany.value && companies.length > 0) {
-        setCurrentCompany(companies[0])
+      if (!currentCompany.value && companiesAccess.length > 0) {
+        setCurrentCompany(companiesAccess[0].company)
       }
     } catch (err) {
       console.error('Error loading user companies:', err)
@@ -346,7 +341,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!user.value) return false
 
     try {
-      return await authService.hasCompanyAccess(user.value.id, companyId)
+      return await CompanyService.hasCompanyAccess(companyId)
     } catch {
       return false
     }

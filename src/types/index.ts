@@ -24,6 +24,8 @@ export interface Branch {
   name: string
   address?: string
   ubigeo_code?: string
+  created_at: string
+  updated_at: string
 }
 
 export interface Warehouse {
@@ -35,7 +37,23 @@ export interface Warehouse {
   width: number
   height: number
   length: number
-  volume_m3: number
+  created_at: string
+  updated_at: string
+  branch?: Branch
+}
+
+export interface WarehouseZone {
+  id: string
+  company_id: string
+  warehouse_id: string
+  code: string
+  name?: string
+  width: number
+  height: number
+  length: number
+  capacity_kg?: number
+  created_at: string
+  updated_at: string
 }
 
 // User and Authentication Types
@@ -288,4 +306,39 @@ export interface PaginatedResponse<T = any> {
   page: number
   limit: number
   total_pages: number
+}
+
+// Company-specific types
+export interface CompanyStats {
+  products: number
+  customers: number
+  suppliers: number
+  warehouses: number
+  salesThisMonth: number
+}
+
+export interface UbigeoInfo {
+  code: string
+  departamento: string
+  provincia: string
+  distrito: string
+}
+
+export interface CompanyRole {
+  id: string
+  name: string
+  description?: string
+  permissions: string[]
+  is_active: boolean
+}
+
+export interface UserCompanyRole {
+  id: string
+  user_id: string
+  company_id: string
+  role_id: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  role?: CompanyRole
 }
