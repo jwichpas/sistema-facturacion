@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 import i18n from './plugins/i18n'
 import { initializeStores } from './stores'
+import { vClickOutside } from './directives/clickOutside'
 
 const app = createApp(App)
 
@@ -20,6 +21,9 @@ app.config.errorHandler = (error, instance, info) => {
 app.use(createPinia())
 app.use(router)
 app.use(i18n)
+
+// Register global directives
+app.directive('click-outside', vClickOutside)
 
 // Initialize stores after mounting
 app.mount('#app')

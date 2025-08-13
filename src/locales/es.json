@@ -11,9 +11,12 @@
     "purchases": "Compras",
     "customers": "Clientes",
     "suppliers": "Proveedores",
+    "parties": "Terceros",
     "warehouses": "Almacenes",
     "reports": "Reportes",
-    "settings": "Configuración"
+    "analytics": "Análisis",
+    "settings": "Configuración",
+    "profile": "Mi Perfil"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -46,7 +49,11 @@
     "back": "Volver",
     "next": "Siguiente",
     "previous": "Anterior",
-    "finish": "Finalizar"
+    "finish": "Finalizar",
+    "notifications": "Notificaciones",
+    "markAllAsRead": "Marcar todo como leído",
+    "noNotifications": "No hay notificaciones",
+    "selectCompany": "Seleccionar Empresa"
   },
   "validation": {
     "required": "Este campo es obligatorio",

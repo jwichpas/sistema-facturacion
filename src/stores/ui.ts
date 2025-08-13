@@ -215,6 +215,6 @@ export const useUIStore = defineStore('ui', () => {
 })
 
 // Helper function for readonly refs
-function readonly<T>(ref: any): T {
+function readonly<T>(ref: T): T {
   return ref
 }

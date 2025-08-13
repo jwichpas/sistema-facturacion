@@ -27,20 +27,20 @@
     - Implement session timeout handling and automatic logout
     - _Requirements: 2.1, 2.4, 2.5_
 
-- [ ] 3. Core Layout and Navigation System
-  - [ ] 3.1 Create responsive main layout component
+- [x] 3. Core Layout and Navigation System
+  - [x] 3.1 Create responsive main layout component
     - Build AppLayout component with sidebar, navbar, and main content areas
     - Implement collapsible sidebar with mobile-responsive behavior
     - Add breadcrumb navigation and page title management
     - _Requirements: 4.1, 4.2, 4.3_
 
-  - [ ] 3.2 Implement sidebar navigation component
+  - [x] 3.2 Implement sidebar navigation component
     - Create hierarchical navigation structure with icons and labels
     - Add active route highlighting and permission-based visibility
     - Implement smooth animations for expand/collapse states
     - _Requirements: 4.1, 4.3_
 
-  - [ ] 3.3 Build top navigation bar with user features
+  - [x] 3.3 Build top navigation bar with user features
     - Create navbar with user menu, notifications, and company selector
     - Implement global search functionality with Ctrl+K shortcut
     - Add theme toggle for dark/light mode switching

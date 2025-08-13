@@ -433,7 +433,7 @@ export const useAuthStore = defineStore('auth', () => {
         if (!refreshed) {
           await signOut()
         }
-      }, refreshTime) as any
+      }, refreshTime) as unknown
     }
   }
 
@@ -510,6 +510,7 @@ export const useAuthStore = defineStore('auth', () => {
     signIn,
     signUp,
     signOut,
+    logout: signOut, // Alias for signOut
     refreshSession,
     loadUserCompanies,
     loadUserPermissions,
@@ -524,6 +525,6 @@ export const useAuthStore = defineStore('auth', () => {
 })
 
 // Helper function for readonly refs
-function readonly<T>(ref: any): T {
+function readonly<T>(ref: T): T {
   return ref
 }
