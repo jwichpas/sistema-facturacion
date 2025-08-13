@@ -1,0 +1,19 @@
+// Export all stores for easy importing
+export { useAuthStore } from './auth'
+export { useUIStore } from './ui'
+export { useCounterStore } from './counter'
+
+// Store initialization function
+export const initializeStores = async () => {
+  const { useUIStore } = await import('./ui')
+  const { useAuthStore } = await import('./auth')
+
+  const uiStore = useUIStore()
+  const authStore = useAuthStore()
+
+  // Initialize UI store
+  uiStore.initializeUI()
+
+  // Initialize auth store
+  await authStore.initializeAuth()
+}
