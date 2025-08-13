@@ -89,6 +89,32 @@ const router = createRouter({
       },
     },
 
+    // Form components test route
+    {
+      path: '/form-test',
+      name: 'form-test',
+      component: () => import('@/views/FormTestView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        title: 'Prueba de Formularios',
+        description: 'Demostración de componentes de formularios',
+      },
+    },
+
+    // DataTable demo route
+    {
+      path: '/datatable-demo',
+      name: 'datatable-demo',
+      component: () => import('@/views/DataTableDemoView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        title: 'Demo DataTable',
+        description: 'Demostración de tabla avanzada',
+      },
+    },
+
     // Products module
     {
       path: '/products',

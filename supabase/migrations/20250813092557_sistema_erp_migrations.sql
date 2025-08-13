@@ -152,6 +152,15 @@ create table if not exists companies (
   ubigeo_code varchar(6) references sunat.ubigeo(code),
   currency_code varchar(3) not null references sunat.cat_02_monedas(code),
   valuation_method text not null default 'PROMEDIO_MOVIL', -- 'FIFO' | 'PROMEDIO_MOVIL'
+  
+  -- Campos para facturación electrónica SUNAT
+  sol_user text, -- Usuario SOL (SUNAT Operaciones en Línea)
+  sol_pass text, -- Contraseña SOL (encriptada)
+  cert_path text, -- Ruta del certificado digital (.CER/.P12) en storage
+  client_id text, -- ID del cliente para APIs (opcional)
+  client_secret text, -- Secret del cliente para APIs (opcional)
+  production boolean not null default false, -- Ambiente: false=Beta, true=Producción
+  
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   deleted_at timestamptz

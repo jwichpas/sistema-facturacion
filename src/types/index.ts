@@ -13,6 +13,15 @@ export interface Company {
   ubigeo_code?: string
   currency_code: string
   valuation_method: 'PROMEDIO_MOVIL' | 'FIFO'
+
+  // Campos para facturación electrónica SUNAT
+  sol_user?: string // Usuario SOL (SUNAT Operaciones en Línea)
+  sol_pass?: string // Contraseña SOL (se almacena encriptada)
+  cert_path?: string // Ruta del certificado digital en storage
+  client_id?: string // ID del cliente para APIs
+  client_secret?: string // Secret del cliente para APIs
+  production: boolean // Ambiente: false=Beta, true=Producción
+
   created_at: string
   updated_at: string
 }

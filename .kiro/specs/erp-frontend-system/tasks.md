@@ -46,7 +46,7 @@
     - Add theme toggle for dark/light mode switching
     - _Requirements: 4.4, 4.5, 14.1, 14.2_
 
-- [ ] 4. Multi-Company Support System
+- [x] 4. Multi-Company Support System
   - [x] 4.1 Create company management store and services
     - Implement company store with current company state and switching logic
     - Create company service for fetching available companies for user
@@ -72,7 +72,7 @@
     - Implement language switching and persistence
     - _Requirements: 15.1, 15.2_
 
-- [ ] 6. Base Form Components and Validation
+- [-] 6. Base Form Components and Validation
   - [ ] 6.1 Create reusable form components with VeeValidate
     - Build BaseForm component with schema validation
     - Create form field components (input, select, textarea, date picker)
