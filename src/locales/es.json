@@ -53,7 +53,20 @@
     "notifications": "Notificaciones",
     "markAllAsRead": "Marcar todo como leído",
     "noNotifications": "No hay notificaciones",
-    "selectCompany": "Seleccionar Empresa"
+    "selectCompany": "Seleccionar Empresa",
+    "retry": "Reintentar"
+  },
+  "company": {
+    "selectCompany": "Seleccionar Empresa",
+    "loading": "Cargando empresas...",
+    "noCompanies": "Sin empresas",
+    "noCompaniesDescription": "No tienes acceso a ninguna empresa. Contacta al administrador.",
+    "ruc": "RUC",
+    "showDetails": "Mostrar detalles",
+    "hideDetails": "Ocultar detalles",
+    "switchingCompany": "Cambiando empresa...",
+    "companyChanged": "Empresa cambiada exitosamente",
+    "errorSwitching": "Error al cambiar de empresa"
   },
   "validation": {
     "required": "Este campo es obligatorio",

@@ -168,55 +168,10 @@
         </div>
 
         <!-- Company selector -->
-        <div class="relative">
-          <button
-            @click="showCompanySelector = !showCompanySelector"
-            class="flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-          >
-            <Building2 class="mr-2 h-4 w-4" />
-            <span class="hidden sm:block">
-              {{
-                authStore.currentCompany?.trade_name ||
-                authStore.currentCompany?.legal_name ||
-                $t('common.selectCompany')
-              }}
-            </span>
-            <ChevronDown class="ml-2 h-4 w-4" />
-          </button>
-
-          <!-- Company selector dropdown -->
-          <div
-            v-if="showCompanySelector"
-            v-click-outside="() => (showCompanySelector = false)"
-            class="absolute right-0 z-50 mt-2 w-64 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-gray-700"
-          >
-            <div class="p-2">
-              <div
-                v-for="company in authStore.availableCompanies"
-                :key="company.company.id"
-                @click="selectCompany(company.company)"
-                :class="[
-                  'flex cursor-pointer items-center rounded-lg px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700',
-                  {
-                    'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200':
-                      company.company.id === authStore.currentCompany?.id,
-                  },
-                ]"
-              >
-                <Building2 class="mr-3 h-4 w-4" />
-                <div class="flex-1 overflow-hidden">
-                  <p class="truncate font-medium">
-                    {{ company.company.trade_name || company.company.legal_name }}
-                  </p>
-                  <p class="truncate text-xs text-gray-500 dark:text-gray-400">
-                    {{ company.company.ruc }}
-                  </p>
-                </div>
-                <Check v-if="company.company.id === authStore.currentCompany?.id" class="ml-2 h-4 w-4" />
-              </div>
-            </div>
-          </div>
-        </div>
+        <CompanySelector
+          @company-changed="handleCompanyChanged"
+          @error="handleCompanySelectorError"
+        />
 
         <!-- User menu -->
         <div class="relative">
@@ -279,6 +234,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { useNotifications } from '@/composables/useNotifications'
+import CompanySelector from '@/components/ui/CompanySelector.vue'
 import type { Company } from '@/types'
 
 // Define notification type for better TypeScript support
@@ -296,14 +252,9 @@ import {
   Bell,
   Sun,
   Moon,
-  Building2,
-  ChevronDown,
-  Check,
   User,
   Settings,
   LogOut,
-  // X,
-  // RotateCw,
 } from 'lucide-vue-next'
 
 const uiStore = useUIStore()
@@ -317,7 +268,6 @@ const isMobile = inject('isMobile', ref(false))
 
 // Dropdown states
 const showNotifications = ref(false)
-const showCompanySelector = ref(false)
 const showUserMenu = ref(false)
 
 // Computed properties
@@ -346,21 +296,17 @@ const toggleTheme = () => {
   uiStore.setTheme(newTheme)
 }
 
-const selectCompany = async (company: Company) => {
-  try {
-    await authStore.setCurrentCompany(company)
-    showCompanySelector.value = false
+const handleCompanyChanged = (company: Company) => {
+  // Refresh current page to update company context
+  router.go(0)
+}
 
-    // Refresh current page to update company context
-    router.go(0)
-  } catch (error) {
-    console.error('Error selecting company:', error)
-    uiStore.addNotification({
-      type: 'error',
-      title: 'Error',
-      message: 'No se pudo cambiar de empresa. Inténtalo de nuevo.',
-    })
-  }
+const handleCompanySelectorError = (error: string) => {
+  uiStore.addNotification({
+    type: 'error',
+    title: 'Error',
+    message: error,
+  })
 }
 
 const handleLogout = async () => {
