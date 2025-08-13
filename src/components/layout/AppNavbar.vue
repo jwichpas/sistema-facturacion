@@ -47,14 +47,8 @@
           <Search class="h-5 w-5" />
         </button>
 
-        <!-- Theme toggle -->
-        <button
-          @click="toggleTheme"
-          class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-        >
-          <Sun v-if="uiStore.theme === 'dark'" class="h-5 w-5" />
-          <Moon v-else class="h-5 w-5" />
-        </button>
+        <!-- Theme selector -->
+        <ThemeSelector @theme-changed="handleThemeChanged" />
 
         <!-- Notifications -->
         <div class="relative">
@@ -235,7 +229,8 @@ import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { useNotifications } from '@/composables/useNotifications'
 import CompanySelector from '@/components/ui/CompanySelector.vue'
-import type { Company } from '@/types'
+import ThemeSelector from '@/components/ui/ThemeSelector.vue'
+import type { Company, Theme } from '@/types'
 
 // Define notification type for better TypeScript support
 interface Notification {
@@ -250,8 +245,6 @@ import {
   Menu,
   Search,
   Bell,
-  Sun,
-  Moon,
   User,
   Settings,
   LogOut,
@@ -290,10 +283,12 @@ const userInitials = computed(() => {
 })
 
 // Methods
-const toggleTheme = () => {
-  const currentTheme = uiStore.theme
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark'
-  uiStore.setTheme(newTheme)
+const handleThemeChanged = (theme: Theme) => {
+  uiStore.addNotification({
+    type: 'success',
+    title: 'Tema cambiado',
+    message: `El tema se cambió a ${theme === 'light' ? 'claro' : theme === 'dark' ? 'oscuro' : 'sistema'}`,
+  })
 }
 
 const handleCompanyChanged = (company: Company) => {

@@ -101,23 +101,91 @@
 
 /* Base styles */
 body {
-  @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200;
+  @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
 }
 
-/* Custom scrollbar */
+/* Theme transition utilities */
+.theme-transition {
+  transition: var(--theme-transition, all 0.2s ease-in-out);
+}
+
+.theme-transition-colors {
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.theme-transition-bg {
+  transition: background-color 0.2s ease-in-out;
+}
+
+.theme-transition-text {
+  transition: color 0.2s ease-in-out;
+}
+
+.theme-transition-border {
+  transition: border-color 0.2s ease-in-out;
+}
+
+/* Apply theme transitions to common elements */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Disable transitions during theme changes to prevent flashing */
+.theme-changing * {
+  transition: none !important;
+}
+
+/* Custom scrollbar with theme support */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  @apply bg-gray-100 dark:bg-gray-800;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  transition: background-color 0.2s ease-in-out;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(209 213 219) rgb(243 244 246);
+}
+
+.dark * {
+  scrollbar-color: rgb(75 85 99) rgb(31 41 55);
+}
+
+/* Focus styles with theme support */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+}
+
+/* Selection styles */
+::selection {
+  @apply bg-primary-100 text-primary-900 dark:bg-primary-900 dark:text-primary-100;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -44,19 +44,31 @@ export const useUIStore = defineStore('ui', () => {
   const updateThemeClass = () => {
     const root = document.documentElement
 
+    // Add theme changing class to prevent transition flashing
+    root.classList.add('theme-changing')
+
     if (theme.value === 'dark') {
       root.classList.add('dark')
+      root.style.colorScheme = 'dark'
     } else if (theme.value === 'light') {
       root.classList.remove('dark')
+      root.style.colorScheme = 'light'
     } else {
       // System preference
       const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       if (systemDark) {
         root.classList.add('dark')
+        root.style.colorScheme = 'dark'
       } else {
         root.classList.remove('dark')
+        root.style.colorScheme = 'light'
       }
     }
+
+    // Remove theme changing class after a brief delay
+    setTimeout(() => {
+      root.classList.remove('theme-changing')
+    }, 50)
   }
 
   const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
