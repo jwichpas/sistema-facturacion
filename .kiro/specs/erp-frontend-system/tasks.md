@@ -132,20 +132,20 @@
     - _Requirements: 5.3_
 
 - [ ] 9. Customer and Supplier Management
-  - [ ] 9.1 Create party management store and services
+  - [x] 9.1 Create party management store and services
     - Implement party store for customers and suppliers using parties table with is_customer/is_supplier flags
     - Create party service with SUNAT document validation using cat_06_doc_identidad catalog
     - Add contact management functionality using party_contacts table
     - Implement fullname computation logic for both natural persons and companies
     - _Requirements: 6.1, 6.2, 6.4_
 
-  - [ ] 9.2 Build party management components
+  - [x] 9.2 Build party management components
     - Create party list view with search and filtering
     - Build party form with document type validation
     - Implement contact management interface
     - _Requirements: 6.1, 6.3, 6.4_
 
-  - [ ] 9.3 Create party selector component
+  - [x] 9.3 Create party selector component
     - Build smart party selection with search
     - Add quick party creation modal
     - Implement transaction history display

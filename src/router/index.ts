@@ -185,6 +185,20 @@ const router = createRouter({
       },
     },
 
+    // Party selector example (for testing)
+    {
+      path: '/party-selector-example',
+      name: 'party-selector-example',
+      component: () => import('@/components/parties/PartySelectorExample.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['parties.read'],
+        title: 'Selector de Contactos - Ejemplo',
+        description: 'Ejemplo de uso del selector de contactos',
+      },
+    },
+
     // Warehouses module
     {
       path: '/warehouses',

@@ -184,13 +184,64 @@ export interface Party {
   apellido_materno?: string
   nombres?: string
   razon_social?: string
-  fullname: string
+  fullname: string | null
   email?: string
   phone?: string
   address?: string
   ubigeo_code?: string
   created_at: string
   updated_at: string
+}
+
+export interface PartyContact {
+  id: string
+  company_id: string
+  party_id: string
+  name?: string | null
+  email?: string | null
+  phone?: string | null
+  notes?: string | null
+  created_at: string | null
+  updated_at: string | null
+  deleted_at?: string | null
+}
+
+// SUNAT Document Types Catalog
+export interface DocumentType {
+  code: string
+  description: string
+  length?: number
+  validation_pattern?: string
+  is_active: boolean
+}
+
+// Extended Party interface with contacts and computed fields
+export interface PartyWithDetails extends Party {
+  contacts?: PartyContact[]
+  document_type_description?: string
+  total_sales?: number
+  total_purchases?: number
+  last_transaction_date?: string
+}
+
+// Party transaction summary
+export interface PartyTransactionSummary {
+  party_id: string
+  total_sales: number
+  total_purchases: number
+  last_sale_date?: string
+  last_purchase_date?: string
+  sales_count: number
+  purchases_count: number
+}
+
+// Party filters and search
+export interface PartyFilters {
+  search?: string
+  docType?: string
+  isCustomer?: boolean
+  isSupplier?: boolean
+  active?: boolean
 }
 
 // Sales Document Types

@@ -1,6 +1,7 @@
 // Export all services for easy importing
 export { default as ProductService } from './product'
 export { default as CompanyService } from './company'
+export { default as PartyService } from './party'
 export { authService } from './auth'
 export { supabase } from './supabase'
 
@@ -36,3 +37,13 @@ export type {
   AuthenticationError,
   ValidationError
 } from './auth'
+
+export type {
+  Party,
+  PartyInsert,
+  PartyUpdate,
+  PartyContactInsert,
+  PartyContactUpdate,
+  PartyListItem,
+  PartyTransactionSummary
+} from './party'

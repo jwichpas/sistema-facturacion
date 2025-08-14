@@ -3,17 +3,16 @@
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-        Proveedores
+        Clientes y Proveedores
       </h1>
       <p class="text-gray-600 dark:text-gray-400 mt-1">
-        Gestiona la información de tus proveedores
+        Gestiona la información de clientes y proveedores
       </p>
     </div>
 
     <!-- Main Content -->
     <div v-if="currentView === 'list'">
       <PartyList
-        type="suppliers"
         @create="showCreateForm"
         @select="viewParty"
         @edit="editParty"
@@ -37,7 +36,7 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 class="text-lg font-medium text-gray-900 dark:text-white">
-            {{ selectedParty ? 'Editar Proveedor' : 'Nuevo Proveedor' }}
+            {{ selectedParty ? 'Editar' : 'Nuevo' }} {{ getPartyTypeLabel() }}
           </h2>
         </div>
 
@@ -133,6 +132,27 @@
                   </div>
                 </dl>
               </div>
+
+              <!-- Party Type -->
+              <div>
+                <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                  Tipo de Relación
+                </h3>
+                <div class="flex space-x-2">
+                  <span
+                    v-if="selectedParty.is_customer"
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                  >
+                    Cliente
+                  </span>
+                  <span
+                    v-if="selectedParty.is_supplier"
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                  >
+                    Proveedor
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -164,7 +184,7 @@
         <div class="mt-3 text-center">
           <AlertTriangle class="mx-auto h-12 w-12 text-red-400" />
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mt-2">
-            Eliminar Proveedor
+            Eliminar {{ getPartyTypeLabel() }}
           </h3>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
             ¿Estás seguro de que deseas eliminar a "{{ partyToDelete?.fullname }}"?
@@ -217,6 +237,18 @@ const getDocumentTypeDescription = (code: string): string => {
   return docType?.description || code
 }
 
+const getPartyTypeLabel = (): string => {
+  if (!selectedParty.value && !partyToDelete.value) return 'Registro'
+
+  const party = selectedParty.value || partyToDelete.value
+  if (!party) return 'Registro'
+
+  if (party.is_customer && party.is_supplier) return 'Cliente/Proveedor'
+  if (party.is_customer) return 'Cliente'
+  if (party.is_supplier) return 'Proveedor'
+  return 'Registro'
+}
+
 const showCreateForm = () => {
   selectedParty.value = null
   currentView.value = 'form'
@@ -248,19 +280,12 @@ const handleSubmit = async (data: any) => {
   submitting.value = true
 
   try {
-    // Ensure the party is marked as supplier
-    const partyData = {
-      ...data,
-      is_supplier: true,
-      is_customer: data.is_customer || false
-    }
-
     if (selectedParty.value) {
       // Update existing party
-      await partyStore.updateParty(selectedParty.value.id, partyData)
+      await partyStore.updateParty(selectedParty.value.id, data)
     } else {
       // Create new party
-      await partyStore.createParty(partyData)
+      await partyStore.createParty(data)
     }
 
     goBack()
