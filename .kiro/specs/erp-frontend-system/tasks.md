@@ -118,13 +118,13 @@
     - Implement barcode scanning functionality
     - _Requirements: 5.1, 5.4, 5.5_
 
-  - [ ] 8.3 Implement category and brand management
+  - [x] 8.3 Implement category and brand management
     - Create hierarchical category management components
     - Build brand management with CRUD operations
     - Add category tree navigation and selection
     - _Requirements: 5.2_
 
-  - [ ] 8.4 Create stock monitoring components
+  - [x] 8.4 Create stock monitoring components
     - Build stock level display components using warehouse_stock aggregated data
     - Implement low stock alerts and notifications using existing notification system
     - Create stock movement history viewer using stock_ledger table with operation_type filtering

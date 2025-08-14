@@ -92,11 +92,11 @@
               </div>
 
               <div>
-                <FormSelect
+                <CategorySelector
                   name="category_id"
                   label="Categoría"
                   placeholder="Seleccionar categoría"
-                  :options="categoryOptions"
+                  :categories="categories"
                 />
                 <div class="mt-2">
                   <BaseButton
@@ -356,6 +356,7 @@ import FormSelect from '@/components/forms/FormSelect.vue'
 import FormTextarea from '@/components/forms/FormTextarea.vue'
 import FormCheckbox from '@/components/forms/FormCheckbox.vue'
 import ProductImageUpload from './ProductImageUpload.vue'
+import CategorySelector from './CategorySelector.vue'
 import type { ProductWithDetails, Brand, Category, ProductInsert, ProductUpdate } from '@/services/product'
 
 interface Props {

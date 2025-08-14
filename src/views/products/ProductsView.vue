@@ -22,10 +22,24 @@
             @open-scanner="showBarcodeScanner = true"
           />
         </div>
-        <BaseButton @click="handleCreateProduct()">
-          <Plus class="w-4 h-4 mr-2" />
-          Nuevo
-        </BaseButton>
+        <div class="flex items-center gap-2">
+          <BaseButton variant="outline" @click="showStockMonitoring = true">
+            <Activity class="w-4 h-4 mr-2" />
+            Stock
+          </BaseButton>
+          <BaseButton variant="outline" @click="showBrandManagement = true">
+            <Tag class="w-4 h-4 mr-2" />
+            Marcas
+          </BaseButton>
+          <BaseButton variant="outline" @click="showCategoryManagement = true">
+            <Folder class="w-4 h-4 mr-2" />
+            Categorías
+          </BaseButton>
+          <BaseButton @click="handleCreateProduct()">
+            <Plus class="w-4 h-4 mr-2" />
+            Nuevo
+          </BaseButton>
+        </div>
       </div>
     </div>
 
@@ -194,12 +208,74 @@
         </div>
       </div>
     </div>
+    <!-- Brand Management Modal -->
+    <div v-if="showBrandManagement" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-900 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Gestión de Marcas
+            </h2>
+            <button
+              @click="showBrandManagement = false"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X class="w-6 h-6" />
+            </button>
+          </div>
+
+          <BrandManagement />
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Management Modal -->
+    <div v-if="showCategoryManagement" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-900 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Gestión de Categorías
+            </h2>
+            <button
+              @click="showCategoryManagement = false"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X class="w-6 h-6" />
+            </button>
+          </div>
+
+          <CategoryManagement />
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock Monitoring Modal -->
+    <div v-if="showStockMonitoring" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-900 rounded-lg w-full max-w-7xl max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Monitoreo de Stock
+            </h2>
+            <button
+              @click="showStockMonitoring = false"
+              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X class="w-6 h-6" />
+            </button>
+          </div>
+
+          <StockMonitoring @view-product="handleViewProduct" />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Plus, X, AlertTriangle } from 'lucide-vue-next'
+import { Plus, X, AlertTriangle, Tag, Folder, Activity } from 'lucide-vue-next'
 import { useProductStore } from '@/stores/product'
 import { useAuthStore } from '@/stores/auth'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -207,6 +283,9 @@ import ProductList from '@/components/products/ProductList.vue'
 import ProductForm from '@/components/products/ProductForm.vue'
 import ProductSearch from '@/components/products/ProductSearch.vue'
 import BarcodeScanner from '@/components/products/BarcodeScanner.vue'
+import BrandManagement from '@/components/products/BrandManagement.vue'
+import CategoryManagement from '@/components/products/CategoryManagement.vue'
+import StockMonitoring from '@/components/products/StockMonitoring.vue'
 import type { ProductListItem, ProductWithDetails, ProductInsert, ProductUpdate } from '@/services/product'
 
 // Stores
@@ -219,6 +298,9 @@ const showBarcodeScanner = ref(false)
 const showBrandForm = ref(false)
 const showCategoryForm = ref(false)
 const showStockAlerts = ref(false)
+const showBrandManagement = ref(false)
+const showCategoryManagement = ref(false)
+const showStockMonitoring = ref(false)
 const editingProduct = ref<ProductWithDetails | null>(null)
 const selectedProducts = ref<ProductListItem[]>([])
 const formLoading = ref(false)
