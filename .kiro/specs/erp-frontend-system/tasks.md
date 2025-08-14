@@ -73,13 +73,13 @@
     - _Requirements: 15.1, 15.2_
 
 - [-] 6. Base Form Components and Validation
-  - [ ] 6.1 Create reusable form components with VeeValidate
+  - [x] 6.1 Create reusable form components with VeeValidate
     - Build BaseForm component with schema validation
     - Create form field components (input, select, textarea, date picker)
     - Implement real-time validation with error display
     - _Requirements: 13.1, 13.2, 13.3_
 
-  - [ ] 6.2 Implement form wizard component for multi-step forms
+  - [x] 6.2 Implement form wizard component for multi-step forms
     - Create FormWizard component with step navigation
     - Add progress indicators and step validation
     - Implement draft saving and form state persistence
@@ -91,27 +91,28 @@
     - Add conditional field display and dependencies
     - _Requirements: 13.1, 13.3_
 
-- [ ] 7. Data Table and Display Components
-  - [ ] 7.1 Implement advanced data table with TanStack Table
+- [x] 7. Data Table and Display Components
+  - [x] 7.1 Implement advanced data table with TanStack Table
     - Create DataTable component with sorting, filtering, and pagination
     - Add column visibility controls and resizing
     - Implement row selection and bulk actions
     - _Requirements: 12.1, 14.4_
 
-  - [ ] 7.2 Create dashboard card components
+  - [x] 7.2 Create dashboard card components
     - Build KPI card components with trend indicators
     - Create chart widget components using ApexCharts
     - Implement recent activity feed component
     - _Requirements: 12.1, 12.2_
 
-- [ ] 8. Product and Inventory Management
-  - [ ] 8.1 Create product management store and services
-    - Implement product store with CRUD operations
-    - Create product service for API interactions with Supabase
-    - Add real-time stock level tracking
+- [-] 8. Product and Inventory Management
+  - [x] 8.1 Create product management store and services
+    - Implement product store with CRUD operations for products, brands, and categories
+    - Create product service for API interactions with Supabase using existing tables (products, brands, categories, product_images, product_codes)
+    - Add real-time stock level tracking using warehouse_stock and stock_ledger tables
+    - Implement product code management (EAN, UPC, SKU alternatives) using product_codes table
     - _Requirements: 5.1, 5.3_
 
-  - [ ] 8.2 Build product catalog and management components
+  - [x] 8.2 Build product catalog and management components
     - Create product list view with search and filtering
     - Build product form component with image upload
     - Implement barcode scanning functionality
@@ -124,16 +125,18 @@
     - _Requirements: 5.2_
 
   - [ ] 8.4 Create stock monitoring components
-    - Build stock level display components
-    - Implement low stock alerts and notifications
-    - Create stock movement history viewer
+    - Build stock level display components using warehouse_stock aggregated data
+    - Implement low stock alerts and notifications using existing notification system
+    - Create stock movement history viewer using stock_ledger table with operation_type filtering
+    - Add stock valuation display using balance_unit_cost and balance_total_cost fields
     - _Requirements: 5.3_
 
 - [ ] 9. Customer and Supplier Management
   - [ ] 9.1 Create party management store and services
-    - Implement party store for customers and suppliers
-    - Create party service with SUNAT document validation
-    - Add contact management functionality
+    - Implement party store for customers and suppliers using parties table with is_customer/is_supplier flags
+    - Create party service with SUNAT document validation using cat_06_doc_identidad catalog
+    - Add contact management functionality using party_contacts table
+    - Implement fullname computation logic for both natural persons and companies
     - _Requirements: 6.1, 6.2, 6.4_
 
   - [ ] 9.2 Build party management components
@@ -182,9 +185,10 @@
 
 - [ ] 12. Warehouse and Transfer Management
   - [ ] 12.1 Create warehouse management store and services
-    - Implement warehouse store with zone management
-    - Create transfer service for stock movements
-    - Add capacity tracking and utilization
+    - Implement warehouse store with zone management using warehouses and warehouse_zones tables
+    - Create transfer service for stock movements using stock_transfers and stock_transfer_items tables
+    - Add capacity tracking and utilization using capacity_kg fields and dimensional calculations
+    - Implement vehicle and driver management for transfers using vehicles and drivers tables
     - _Requirements: 9.1, 9.4_
 
   - [ ] 12.2 Build warehouse management components
@@ -201,9 +205,10 @@
 
 - [ ] 13. Electronic Invoicing Integration
   - [ ] 13.1 Create electronic invoicing service
-    - Implement Greenter integration for XML generation
-    - Create SUNAT submission handling
-    - Add CDR processing and storage
+    - Implement Greenter integration for XML generation using existing greenter_xml field in sales_docs
+    - Create SUNAT submission handling with status tracking using greenter_status, greenter_ticket fields
+    - Add CDR processing and storage using greenter_cdr and greenter_hash fields
+    - Implement electronic billing configuration management using companies table SOL credentials
     - _Requirements: 10.1, 10.2, 10.3_
 
   - [ ] 13.2 Build electronic invoicing components
@@ -214,9 +219,10 @@
 
 - [ ] 14. SUNAT Reporting System
   - [ ] 14.1 Create reporting store and services
-    - Implement report generation service
-    - Create SUNAT format exporters (12.1, 13.1)
-    - Add data validation and accuracy checks
+    - Implement report generation service using existing materialized views (mv_kardex_mensual)
+    - Create SUNAT format exporters (12.1, 13.1) using v_sunat_formato_12_1 and v_sunat_formato_13_1 views
+    - Add data validation and accuracy checks leveraging existing SUNAT catalog tables
+    - Implement inventory header generation using v_sunat_inventory_header view
     - _Requirements: 11.1, 11.4_
 
   - [ ] 14.2 Build reporting interface components
@@ -227,77 +233,95 @@
 
 - [ ] 15. Dashboard and Analytics
   - [ ] 15.1 Create dashboard store and analytics services
-    - Implement dashboard data aggregation
-    - Create KPI calculation services
-    - Add real-time data updates
+    - Implement dashboard data aggregation using existing materialized views and stock_ledger data
+    - Create KPI calculation services leveraging sales_docs, purchase_docs, and inventory data
+    - Add real-time data updates using Supabase real-time subscriptions
+    - Implement notification integration using existing notification system
     - _Requirements: 12.1_
 
   - [ ] 15.2 Build dashboard components with charts
-    - Create sales trend charts using ApexCharts
-    - Build inventory monitoring widgets
-    - Implement financial overview components
+    - Create sales trend charts using ApexCharts with sales_docs data aggregation
+    - Build inventory monitoring widgets using warehouse_stock and stock_ledger data
+    - Implement financial overview components using sales/purchase totals and profit calculations
+    - Add low stock alerts integration with existing notification_templates
     - _Requirements: 12.2, 12.3, 12.4_
 
-- [ ] 16. Search and Navigation Features
-  - [ ] 16.1 Implement global search functionality
+- [ ] 16. Notification System Integration
+  - [ ] 16.1 Implement notification management components
+    - Create notification center using existing notifications table
+    - Build notification preferences interface using notification_preferences table
+    - Implement notification templates management using notification_templates table
+    - Add real-time notification delivery using notification_delivery_log tracking
+    - _Requirements: System notifications and user preferences_
+
+  - [ ] 16.2 Integrate business process notifications
+    - Connect sales document creation to notification system
+    - Implement stock level alerts using existing notification types
+    - Add user assignment notifications for company access
+    - Create electronic billing status notifications
+    - _Requirements: Business process automation_
+
+- [ ] 17. Search and Navigation Features
+  - [ ] 17.1 Implement global search functionality
     - Create unified search service across all modules
     - Build search results interface with categorization
     - Add keyboard shortcut handling (Ctrl+K)
     - _Requirements: 14.1, 14.2_
 
-  - [ ] 16.2 Create advanced filtering components
+  - [ ] 17.2 Create advanced filtering components
     - Build filter builder interface
     - Implement saved filter functionality
     - Add filter presets for common searches
     - _Requirements: 14.4_
 
-- [ ] 17. File Upload and Image Management
-  - [ ] 17.1 Create file upload service with Supabase Storage
+- [ ] 18. File Upload and Image Management
+  - [ ] 18.1 Create file upload service with Supabase Storage
     - Implement file upload with progress tracking
     - Create image optimization and resizing
     - Add file type validation and security checks
     - _Requirements: 5.4_
 
-  - [ ] 17.2 Build image management components
-    - Create image upload component with preview
-    - Build image gallery and selection interface
-    - Implement drag-and-drop upload functionality
+  - [ ] 18.2 Build image management components
+    - Create image upload component with preview using product_images table
+    - Build image gallery and selection interface with is_primary flag support
+    - Implement drag-and-drop upload functionality with storage_path management
+    - Add image optimization and multiple format support for product catalogs
     - _Requirements: 5.4_
 
-- [ ] 18. PWA and Offline Capabilities
-  - [ ] 18.1 Configure PWA with Vite PWA plugin
+- [ ] 19. PWA and Offline Capabilities
+  - [ ] 19.1 Configure PWA with Vite PWA plugin
     - Set up service worker for caching
     - Configure offline fallback pages
     - Implement background sync for form data
     - _Requirements: 16.1, 16.2_
 
-  - [ ] 18.2 Implement offline data management
+  - [ ] 19.2 Implement offline data management
     - Create offline data storage with IndexedDB
     - Build sync mechanism for offline changes
     - Add offline status indicators
     - _Requirements: 16.2, 16.3_
 
-- [ ] 19. Testing Implementation
-  - [ ] 19.1 Set up testing framework and utilities
+- [ ] 20. Testing Implementation
+  - [ ] 20.1 Set up testing framework and utilities
     - Configure Vitest for unit testing
     - Set up Playwright for E2E testing
     - Create testing utilities and mocks
     - _Requirements: All requirements need testing coverage_
 
-  - [ ] 19.2 Write comprehensive test suites
+  - [ ] 20.2 Write comprehensive test suites
     - Create unit tests for components and composables
     - Build integration tests for user workflows
     - Implement E2E tests for critical business processes
     - _Requirements: All requirements need testing coverage_
 
-- [ ] 20. Performance Optimization and Deployment
-  - [ ] 20.1 Implement performance optimizations
+- [ ] 21. Performance Optimization and Deployment
+  - [ ] 21.1 Implement performance optimizations
     - Add route-based code splitting
     - Implement component lazy loading
     - Optimize bundle size and caching strategies
     - _Requirements: 16.4_
 
-  - [ ] 20.2 Configure deployment and CI/CD
+  - [ ] 21.2 Configure deployment and CI/CD
     - Set up build optimization for production
     - Configure deployment pipeline
     - Add performance monitoring and error tracking

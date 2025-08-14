@@ -5,17 +5,11 @@
         <p class="text-sm text-gray-500 dark:text-gray-400">{{ title }}</p>
         <div class="flex items-baseline gap-2">
           <h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ value }}</h3>
-          <span
+          <TrendIndicator
             v-if="delta !== undefined"
-            :class="[
-              'text-sm px-2 py-0.5 rounded-full',
-              delta >= 0 ? 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30' : 'text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900/30'
-            ]"
-          >
-            <span v-if="delta >= 0">▲</span>
-            <span v-else>▼</span>
-            {{ Math.abs(delta).toLocaleString(undefined, { maximumFractionDigits: 2 }) }}%
-          </span>
+            :value="delta"
+            format="percentage"
+          />
         </div>
         <p v-if="subtitle" class="text-xs text-gray-500 dark:text-gray-400">{{ subtitle }}</p>
       </div>
@@ -31,6 +25,8 @@
 </template>
 
 <script setup lang="ts">
+import TrendIndicator from './TrendIndicator.vue'
+
 interface Props {
   title: string
   value: string | number

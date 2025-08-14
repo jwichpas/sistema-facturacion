@@ -71,7 +71,6 @@ const {
   errorMessage,
   handleBlur,
   handleChange: veeHandleChange,
-  meta,
 } = useField(props.name, undefined, {
   initialValue: props.modelValue,
 })

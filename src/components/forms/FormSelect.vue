@@ -28,13 +28,16 @@
           v-for="option in options"
           :key="option.value"
           :value="option.value"
+          :disabled="option.disabled"
         >
           {{ option.label }}
         </option>
       </select>
 
-      <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-        <ChevronDownIcon class="h-4 w-4 text-gray-400" />
+      <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+        <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
       </div>
     </div>
 
@@ -51,11 +54,11 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue'
 import { useField } from 'vee-validate'
-import { ChevronDownIcon } from 'lucide-vue-next'
 
 interface SelectOption {
   value: string | number
   label: string
+  disabled?: boolean
 }
 
 interface Props {
@@ -63,9 +66,9 @@ interface Props {
   label?: string
   placeholder?: string
   hint?: string
-  options: SelectOption[]
   disabled?: boolean
   required?: boolean
+  options: SelectOption[]
   modelValue?: string | number
 }
 
@@ -88,7 +91,6 @@ const {
   errorMessage,
   handleBlur,
   handleChange: veeHandleChange,
-  meta,
 } = useField(props.name, undefined, {
   initialValue: props.modelValue,
 })

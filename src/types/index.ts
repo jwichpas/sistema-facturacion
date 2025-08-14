@@ -107,6 +107,29 @@ export interface Product {
   updated_at: string
 }
 
+export interface ProductCode {
+  id: string
+  company_id: string
+  product_id: string
+  code_type: string
+  code_value: string
+}
+
+export interface ProductImage {
+  id: string
+  company_id: string
+  product_id: string
+  storage_path: string
+  is_primary: boolean | null
+  created_at: string | null
+}
+
+export interface WarehouseStock {
+  product_id: string
+  warehouse_id: string
+  balance_qty: number
+}
+
 export interface Category {
   id: string
   company_id: string

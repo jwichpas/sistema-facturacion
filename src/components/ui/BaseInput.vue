@@ -84,7 +84,6 @@ const inputClasses = computed(() => {
     'w-full',
     'px-3',
     'py-2',
-    'border',
     'rounded-lg',
     'text-sm',
     'transition-colors',
@@ -95,6 +94,8 @@ const inputClasses = computed(() => {
     'disabled:cursor-not-allowed',
     'placeholder:text-gray-400',
     'dark:placeholder:text-gray-500',
+    'outline-1',
+    '-outline-offset-1'
   ]
 
   const stateClasses = props.error

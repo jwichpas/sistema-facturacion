@@ -86,7 +86,6 @@ const {
   errorMessage,
   handleBlur,
   handleChange: veeHandleChange,
-  meta,
 } = useField(props.name, undefined, {
   initialValue: props.modelValue,
 })
@@ -95,31 +94,34 @@ const inputClasses = computed(() => {
   const baseClasses = [
     'block',
     'w-full',
+    'rounded-md',
+    'bg-white/5',
     'px-3',
-    'py-2',
-    'border',
-    'rounded-lg',
-    'text-sm',
-    'transition-colors',
-    'focus:outline-none',
-    'focus:ring-2',
-    'focus:ring-offset-1',
+    'py-1.5',
+    'text-base',
+    'text-white',
+    'placeholder:text-gray-500',
+    'outline-1',
+    '-outline-offset-1',
+    'outline-white/10',
+    'focus:outline-2',
+    'focus:-outline-offset-2',
+    'focus:outline-indigo-500',
     'disabled:opacity-50',
     'disabled:cursor-not-allowed',
-    'placeholder:text-gray-400',
-    'dark:placeholder:text-gray-500',
+    'sm:text-sm/6',
   ]
 
   const stateClasses = errorMessage.value
     ? [
-        'border-red-300',
-        'text-red-900',
-        'focus:border-red-500',
-        'focus:ring-red-500',
-        'dark:border-red-600',
-        'dark:text-red-100',
+        'outline-red-500',
+        'focus:outline-red-500',
+        'text-red-100',
+        'placeholder:text-red-300',
+        'dark:outline-red-600',
       ]
     : [
+        'border',
         'border-gray-300',
         'text-gray-900',
         'focus:border-blue-500',

@@ -15,11 +15,11 @@
         :name="name"
         type="date"
         :value="formattedValue"
+        :min="min"
+        :max="max"
         :disabled="disabled"
         :readonly="readonly"
         :required="required"
-        :min="min"
-        :max="max"
         :class="inputClasses"
         @input="handleChange"
         @blur="handleBlur"
@@ -27,7 +27,9 @@
       />
 
       <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-        <CalendarIcon class="h-4 w-4 text-gray-400" />
+        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
       </div>
     </div>
 
@@ -45,7 +47,6 @@
 import { computed, useId } from 'vue'
 import { useField } from 'vee-validate'
 import { format, parseISO } from 'date-fns'
-import { CalendarIcon } from 'lucide-vue-next'
 
 interface Props {
   name: string
@@ -79,7 +80,6 @@ const {
   errorMessage,
   handleBlur,
   handleChange: veeHandleChange,
-  meta,
 } = useField(props.name, undefined, {
   initialValue: props.modelValue,
 })
@@ -88,24 +88,23 @@ const formattedValue = computed(() => {
   if (!value.value) return ''
 
   try {
+    if (value.value instanceof Date) {
+      return format(value.value, 'yyyy-MM-dd')
+    }
+
     if (typeof value.value === 'string') {
       // If it's already in YYYY-MM-DD format, return as is
       if (/^\d{4}-\d{2}-\d{2}$/.test(value.value)) {
         return value.value
       }
-      // Otherwise parse and format
+      // Try to parse and format
       return format(parseISO(value.value), 'yyyy-MM-dd')
     }
-
-    if (value.value instanceof Date) {
-      return format(value.value, 'yyyy-MM-dd')
-    }
-
-    return ''
   } catch (error) {
-    console.warn('Invalid date value:', value.value)
-    return ''
+    console.warn('Invalid date format:', value.value)
   }
+
+  return ''
 })
 
 const inputClasses = computed(() => {
@@ -153,8 +152,19 @@ const handleChange = (event: Event) => {
   const target = event.target as HTMLInputElement
   const newValue = target.value
 
-  veeHandleChange(newValue)
-  emit('update:modelValue', newValue)
+  if (newValue) {
+    try {
+      const dateValue = parseISO(newValue)
+      veeHandleChange(dateValue)
+      emit('update:modelValue', dateValue)
+    } catch (error) {
+      veeHandleChange(newValue)
+      emit('update:modelValue', newValue)
+    }
+  } else {
+    veeHandleChange('')
+    emit('update:modelValue', '')
+  }
 }
 
 const handleFocus = (event: FocusEvent) => {
