@@ -152,13 +152,13 @@
     - _Requirements: 6.4_
 
 - [ ] 10. Sales Management and POS System
-  - [ ] 10.1 Create sales document store and services
+  - [x] 10.1 Create sales document store and services
     - Implement sales store with document management
     - Create sales service for invoice and receipt generation
     - Add tax calculation according to SUNAT rules
     - _Requirements: 7.1, 7.3_
 
-  - [ ] 10.2 Build sales document management components
+  - [x] 10.2 Build sales document management components
     - Create sales document list and detail views
     - Build invoice/receipt creation form
     - Implement document printing functionality
