@@ -338,14 +338,14 @@ const handleSubmit = async (values: unknown) => {
 
   // Prepare data for submission
   const partyData = {
-    ...values,
+    ...(values as Record<string, any>),
     company_id: authStore.currentCompany?.id
   }
 
   // Remove empty optional fields
   Object.keys(partyData).forEach(key => {
-    if (partyData[key] === '' || partyData[key] === null) {
-      delete partyData[key]
+    if ((partyData as any)[key] === '' || (partyData as any)[key] === null) {
+      delete (partyData as any)[key]
     }
   })
 

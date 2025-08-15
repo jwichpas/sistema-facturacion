@@ -285,17 +285,19 @@ const handleContactSubmit = async (values: unknown) => {
   try {
     if (showEditModal.value && editingContact.value) {
       // Update existing contact
-      await partyStore.updateContact(editingContact.value.id, values)
+      await partyStore.updateContact(editingContact.value.id, values as Partial<PartyContact>)
     } else {
       // Create new contact
       // Get auth store to access current company
       const authStore = useAuthStore()
 
-      await partyStore.createContact({
-        ...values,
-        party_id: props.partyId,
-        company_id: authStore.currentCompany?.id
-      })
+      if (authStore.currentCompany?.id) {
+        await partyStore.createContact({
+          ...(values as Record<string, any>),
+          party_id: props.partyId,
+          company_id: authStore.currentCompany.id
+        })
+      }
     }
 
     closeModals()

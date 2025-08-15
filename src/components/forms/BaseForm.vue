@@ -63,7 +63,7 @@ const emit = defineEmits<{
 // Initialize form with VeeValidate
 const { handleSubmit, values, errors, meta, isSubmitting, resetForm } = useForm<T>({
   validationSchema: props.schema,
-  initialValues: props.initialValues as unknown,
+  initialValues: props.initialValues as any,
 })
 
 const formClasses = computed(() => {
@@ -75,7 +75,7 @@ const formClasses = computed(() => {
 })
 
 const onSubmit = handleSubmit(async (values) => {
-  emit('submit', values as T)
+  emit('submit', values as any as T)
 })
 
 const handleCancel = () => {

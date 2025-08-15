@@ -143,6 +143,20 @@ const router = createRouter({
       },
     },
 
+    // POS module
+    {
+      path: '/pos',
+      name: 'pos',
+      component: () => import('@/views/sales/POSView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['sales.create'],
+        title: 'Punto de Venta',
+        description: 'Interfaz de punto de venta',
+      },
+    },
+
     // Purchases module
     {
       path: '/purchases',

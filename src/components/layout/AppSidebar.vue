@@ -182,6 +182,7 @@ import {
   BarChart3,
   Settings,
   UserCheck,
+  CreditCard,
 } from 'lucide-vue-next'
 
 interface NavigationItem {
@@ -236,8 +237,22 @@ const navigationItems: NavigationItem[] = [
     id: 'sales',
     label: 'nav.sales',
     icon: ShoppingCart,
-    route: '/sales',
-    permissions: ['sales.read'],
+    children: [
+      {
+        id: 'sales-list',
+        label: 'nav.sales_list',
+        icon: ShoppingCart,
+        route: '/sales',
+        permissions: ['sales.read'],
+      },
+      {
+        id: 'pos',
+        label: 'nav.pos',
+        icon: CreditCard,
+        route: '/pos',
+        permissions: ['sales.create'],
+      },
+    ],
   },
   {
     id: 'purchases',

@@ -210,15 +210,10 @@ const checkSupport = () => {
   isSupported.value = !!(
     navigator.mediaDevices &&
     navigator.mediaDevices.getUserMedia &&
-    (window as any).BarcodeDetector
+    typeof (window as any).BarcodeDetector !== 'undefined'
   )
 
-  // Fallback check for older browsers
-  if (!isSupported.value && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
-    // We can at least access the camera, even if BarcodeDetector is not available
-    // In a real implementation, you'd use a library like QuaggaJS or ZXing
-    isSupported.value = true
-  }
+  
 }
 
 const startScanning = async () => {
@@ -343,8 +338,8 @@ const loadRecentScans = () => {
     if (saved) {
       const parsed = JSON.parse(saved)
       recentScans.value = parsed.map((scan: unknown) => ({
-        ...scan,
-        timestamp: new Date(scan.timestamp)
+        ...(scan as Record<string, any>),
+        timestamp: new Date((scan as Record<string, any>).timestamp as string)
       }))
     }
   } catch (error) {

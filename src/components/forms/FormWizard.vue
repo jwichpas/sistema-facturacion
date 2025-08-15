@@ -288,7 +288,7 @@ const isSavingDraft = ref(false)
 const draftSaved = ref(false)
 const lastSavedTime = ref<string>('')
 const autoSaveTimer = ref<number | null>(null)
-const currentStepForm = ref<InstanceType<typeof BaseForm> | null>(null)
+const currentStepForm = ref<any | null>(null)
 
 // Environment detection
 const isDevelopment = computed(() => import.meta.env.DEV)

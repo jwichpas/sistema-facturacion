@@ -126,7 +126,7 @@
               v-for="party in filteredParties"
               :key="party.id"
               class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-              @click="$emit('select', party)"
+              @click="$emit('edit', party as any)"
             >
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
@@ -180,21 +180,21 @@
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex justify-end space-x-2">
                   <button
-                    @click.stop="$emit('edit', party)"
+                    @click.stop="$emit('edit', party as any)"
                     class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                     title="Editar"
                   >
                     <Edit2 class="h-4 w-4" />
                   </button>
                   <button
-                    @click.stop="$emit('view', party)"
+                    @click.stop="$emit('view', party as any)"
                     class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
                     title="Ver detalles"
                   >
                     <Eye class="h-4 w-4" />
                   </button>
                   <button
-                    @click.stop="$emit('delete', party)"
+                    @click.stop="$emit('delete', party as any)"
                     class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                     title="Eliminar"
                   >
@@ -277,7 +277,7 @@ const getDocumentTypeDescription = (code: string): string => {
 }
 
 const applyFilters = () => {
-  const filters: unknown = {}
+  const filters: any = {}
 
   if (searchQuery.value.trim()) {
     filters.search = searchQuery.value.trim()

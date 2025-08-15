@@ -8,6 +8,8 @@
     "products": "Products",
     "inventory": "Inventory",
     "sales": "Sales",
+    "sales_list": "Sales List",
+    "pos": "Point of Sale",
     "purchases": "Purchases",
     "customers": "Customers",
     "suppliers": "Suppliers",

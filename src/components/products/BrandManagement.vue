@@ -33,7 +33,7 @@
           name="status_filter"
           :model-value="statusFilter"
           :options="statusOptions"
-          @update:model-value="statusFilter = $event"
+          @update:model-value="statusFilter = String($event)"
         />
         <BaseButton variant="outline" @click="clearFilters">
           <X class="w-4 h-4 mr-1" />
@@ -145,58 +145,58 @@
                   </div>
                   <div class="ml-4">
                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {{ brand.name }}
+                      {{ (brand as any).name }}
                     </div>
                   </div>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="text-sm text-gray-900 dark:text-gray-100 font-mono">
-                  {{ brand.code || '-' }}
+                  {{ (brand as any).code || '-' }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="text-sm text-gray-900 dark:text-gray-100">
-                  {{ getBrandProductCount(brand.id) }}
+                  {{ getBrandProductCount((brand as any).id) }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
                   :class="[
                     'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                    brand.active
+                    (brand as any).active
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                       : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                   ]"
                 >
-                  {{ brand.active ? 'Activa' : 'Inactiva' }}
+                  {{ (brand as any).active ? 'Activa' : 'Inactiva' }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                {{ formatDate(brand.created_at) }}
+                {{ formatDate((brand as any).created_at) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex items-center justify-end gap-2">
                   <button
-                    @click="editBrand(brand)"
+                    @click="editBrand(brand as any)"
                     class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                   >
                     <Edit class="w-4 h-4" />
                   </button>
                   <button
-                    @click="toggleBrandStatus(brand)"
+                    @click="toggleBrandStatus(brand as any)"
                     :class="[
                       'hover:text-yellow-900 dark:hover:text-yellow-300',
-                      brand.active ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'
+                      (brand as any).active ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'
                     ]"
                   >
-                    <component :is="brand.active ? EyeOff : Eye" class="w-4 h-4" />
+                    <component :is="(brand as any).active ? EyeOff : Eye" class="w-4 h-4" />
                   </button>
                   <button
-                    @click="deleteBrand(brand)"
+                    @click="deleteBrand(brand as any)"
                     class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                    :disabled="getBrandProductCount(brand.id) > 0"
-                    :title="getBrandProductCount(brand.id) > 0 ? 'No se puede eliminar una marca con productos' : 'Eliminar marca'"
+                    :disabled="getBrandProductCount((brand as any).id) > 0"
+                    :title="getBrandProductCount((brand as any).id) > 0 ? 'No se puede eliminar una marca con productos' : 'Eliminar marca'"
                   >
                     <Trash2 class="w-4 h-4" />
                   </button>
@@ -329,7 +329,7 @@ const filteredBrands = computed(() => {
   // Apply status filter
   if (statusFilter.value !== '') {
     const isActive = statusFilter.value === 'true'
-    brands = brands.filter(brand => brand.active === isActive)
+    brands = brands.filter(brand => (brand as any).active === isActive)
   }
 
   return brands.sort((a, b) => a.name.localeCompare(b.name))
@@ -366,7 +366,7 @@ const statusOptions = [
 ]
 
 // Methods
-const handleSearch = (query: string) => {
+const handleSearch = (query: string | number) => {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
     searchQuery.value = query
@@ -409,9 +409,9 @@ const handleSubmit = async (data: any) => {
     }
 
     const brandData = {
-      ...data,
-      company_id: authStore.currentCompany.id,
-      code: data.code || null // Convert empty string to null
+      name: data.name,
+      code: data.code || null, // Convert empty string to null
+      company_id: authStore.currentCompany.id
     }
 
     if (editingBrand.value) {

@@ -214,7 +214,7 @@ const transactionSummaries = ref<Record<string, PartyTransactionSummary>>({})
 // Computed
 const selectedParty = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: (value) => emit('update:modelValue', value || null)
 })
 
 const partyTypeLabel = computed(() => {
