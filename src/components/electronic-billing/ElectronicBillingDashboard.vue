@@ -479,4 +479,4 @@ function formatDate(date: string): string {
   return new Date(date).toLocaleDateString('es-PE')
 }
 </script>
-</template>
+

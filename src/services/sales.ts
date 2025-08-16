@@ -158,7 +158,24 @@ export default class SalesService {
       .single()
 
     if (error) throw error
-    return data as SalesDocWithDetails
+
+    // Transform the data to match the expected interface
+    const transformedData = {
+      ...data,
+      customer: data.parties,
+      branch: data.branches,
+      items: data.sales_doc_items?.map((item: any) => ({
+        ...item,
+        product: item.products // Transform products to product
+      }))
+    }
+
+    // Remove the original properties to avoid confusion
+    delete transformedData.parties
+    delete transformedData.branches
+    delete transformedData.sales_doc_items
+
+    return transformedData as SalesDocWithDetails
   }
 
   static async createSalesDoc(payload: SalesDocCreatePayload): Promise<SalesDoc> {

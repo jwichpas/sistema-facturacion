@@ -170,6 +170,42 @@ const router = createRouter({
         description: 'Gestión de compras y proveedores',
       },
     },
+    {
+      path: '/purchases/new',
+      name: 'purchase-create',
+      component: () => import('@/views/purchases/PurchaseCreateView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['purchases.create'],
+        title: 'Nuevo Documento de Compra',
+        description: 'Crear un nuevo documento de compra',
+      },
+    },
+    {
+      path: '/purchases/:id',
+      name: 'purchase-detail',
+      component: () => import('@/views/purchases/PurchaseDetailView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['purchases.read'],
+        title: 'Detalle de Compra',
+        description: 'Ver detalles del documento de compra',
+      },
+    },
+    {
+      path: '/purchases/:id/edit',
+      name: 'purchase-edit',
+      component: () => import('@/views/purchases/PurchaseEditView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['purchases.update'],
+        title: 'Editar Documento de Compra',
+        description: 'Modificar documento de compra',
+      },
+    },
 
     // Customers module
     {
@@ -224,6 +260,104 @@ const router = createRouter({
         permissions: ['warehouses.read'],
         title: 'Almacenes',
         description: 'Gestión de almacenes y ubicaciones',
+      },
+    },
+    {
+      path: '/warehouses/transfers',
+      name: 'stock-transfers',
+      component: () => import('@/views/warehouses/StockTransfersView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['warehouses.read'],
+        title: 'Transferencias de Stock',
+        description: 'Gestión de transferencias entre almacenes',
+      },
+    },
+    {
+      path: '/warehouses/visualization',
+      name: 'warehouse-visualization',
+      component: () => import('@/views/warehouses/WarehouseVisualizationView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['warehouses.read'],
+        title: 'Visualización 3D',
+        description: 'Vista tridimensional de almacenes',
+      },
+    },
+    {
+      path: '/warehouses/test',
+      name: 'warehouse-test',
+      component: () => import('@/views/warehouses/WarehouseTestView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['warehouses.read'],
+        title: 'Prueba de Warehouse',
+        description: 'Vista de prueba para funcionalidades de warehouse',
+      },
+    },
+
+    // Electronic Billing module
+    {
+      path: '/electronic-billing',
+      name: 'electronic-billing',
+      component: () => import('@/views/ElectronicBillingView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['electronic_billing.read'],
+        title: 'Facturación Electrónica',
+        description: 'Gestión de documentos electrónicos y SUNAT',
+      },
+    },
+    {
+      path: '/electronic-billing/config',
+      name: 'electronic-billing-config',
+      component: () => import('@/views/electronic-billing/ConfigView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['electronic_billing.config'],
+        title: 'Configuración de Facturación Electrónica',
+        description: 'Configurar credenciales y certificados SUNAT',
+      },
+    },
+    {
+      path: '/electronic-billing/documents',
+      name: 'electronic-billing-documents',
+      component: () => import('@/views/electronic-billing/DocumentsView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['electronic_billing.read'],
+        title: 'Documentos Electrónicos',
+        description: 'Lista completa de documentos electrónicos',
+      },
+    },
+    {
+      path: '/electronic-billing/pending',
+      name: 'electronic-billing-pending',
+      component: () => import('@/views/electronic-billing/PendingView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['electronic_billing.read'],
+        title: 'Documentos Pendientes',
+        description: 'Gestión de documentos pendientes de envío',
+      },
+    },
+    {
+      path: '/electronic-billing/monitor',
+      name: 'electronic-billing-monitor',
+      component: () => import('@/views/electronic-billing/MonitorView.vue'),
+      meta: {
+        requiresAuth: true,
+        requiresCompany: true,
+        permissions: ['electronic_billing.read'],
+        title: 'Monitor de Estado',
+        description: 'Monitoreo en tiempo real de documentos',
       },
     },
 

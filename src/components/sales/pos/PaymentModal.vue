@@ -371,22 +371,32 @@ const processPayment = async () => {
         currency_code: 'PEN',
         exchange_rate: 1,
         total: props.cartTotals.total,
+        total_ope_gravadas: props.cartTotals.total_ope_gravadas,
+        total_ope_exoneradas: props.cartTotals.total_ope_exoneradas,
+        total_ope_inafectas: props.cartTotals.total_ope_inafectas,
+        total_igv: props.cartTotals.igv_amount,
+        total_isc: 0,
+        total_descuentos: props.cartTotals.total_descuentos,
+        total_otros_cargos: 0,
         notes: notes.value || null,
         greenter_status: 'PENDING'
       },
-      items: props.cartItems.map((item, index) => ({
-        company_id: authStore.currentCompany!.id,
-        line_number: index + 1,
-        product_id: item.product.id,
-        description: item.product.name,
-        unit_code: 'NIU', // Default unit
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        discount_pct: item.discount_pct,
-        igv_affectation: item.igv_affectation,
-        igv_amount: salesStore.calculateItemTax(item).igv_amount || 0,
-        total_line: salesStore.calculateItemTax(item).line_total_with_tax || 0
-      }))
+      items: props.cartItems.map((item, index) => {
+        const itemTax = salesStore.calculateItemTax(item)
+        return {
+          company_id: authStore.currentCompany!.id,
+          line_number: index + 1,
+          product_id: item.product.id,
+          description: item.product.name,
+          unit_code: 'NIU', // Default unit
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          discount_pct: item.discount_pct,
+          igv_affectation: item.igv_affectation,
+          igv_amount: itemTax.igv_amount || 0,
+          total_line: itemTax.line_total_before_tax || 0 // Use line_total_before_tax, not line_total_with_tax
+        }
+      })
     }
 
     // Create sales document

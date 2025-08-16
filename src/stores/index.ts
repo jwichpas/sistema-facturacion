@@ -5,6 +5,7 @@ export { useCounterStore } from './counter'
 export { useCompanyStore } from './company'
 export { useProductStore } from './product'
 export { usePartyStore } from './party'
+export { useWarehouseStore } from './warehouse'
 
 // Store initialization function
 export const initializeStores = async () => {
@@ -13,12 +14,14 @@ export const initializeStores = async () => {
   const { useCompanyStore } = await import('./company')
   const { useProductStore } = await import('./product')
   const { usePartyStore } = await import('./party')
+  const { useWarehouseStore } = await import('./warehouse')
 
   const uiStore = useUIStore()
   const authStore = useAuthStore()
   const companyStore = useCompanyStore()
   const productStore = useProductStore()
   const partyStore = usePartyStore()
+  const warehouseStore = useWarehouseStore()
 
   // Initialize UI store
   uiStore.initializeUI()

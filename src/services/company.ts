@@ -1,5 +1,10 @@
 import { supabase } from './supabase'
 import type { Company } from '@/types'
+import type { Database } from '@/types/database'
+import { transformCompanyFromDB } from '@/utils/typeTransformers'
+
+// Database types for internal use
+type DbCompany = Database['public']['Tables']['companies']['Row']
 
 export interface CompanyAccess {
   company: Company
@@ -82,20 +87,7 @@ export class CompanyService {
         }
 
         return {
-          company: {
-            id: company.id,
-            ruc: company.ruc,
-            legal_name: company.legal_name,
-            trade_name: company.trade_name,
-            email: company.email,
-            phone: company.phone,
-            address: company.address,
-            ubigeo_code: company.ubigeo_code,
-            currency_code: company.currency_code,
-            valuation_method: company.valuation_method,
-            created_at: company.created_at,
-            updated_at: company.updated_at
-          } as Company,
+          company: transformCompanyFromDB(company),
           role: role.name,
           permissions: Array.isArray(role.permissions) ? role.permissions : [],
           isActive: uc.is_active
@@ -120,7 +112,7 @@ export class CompanyService {
     const { data, error } = await supabase
       .from('user_companies')
       .select('id')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
       .eq('company_id', companyId)
       .eq('is_active', true)
       .single()
@@ -144,7 +136,7 @@ export class CompanyService {
           permissions
         )
       `)
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
       .eq('is_active', true)
 
     if (companyId) {
@@ -185,20 +177,7 @@ export class CompanyService {
       throw error
     }
 
-    return {
-      id: data.id,
-      ruc: data.ruc,
-      legal_name: data.legal_name,
-      trade_name: data.trade_name,
-      email: data.email,
-      phone: data.phone,
-      address: data.address,
-      ubigeo_code: data.ubigeo_code,
-      currency_code: data.currency_code,
-      valuation_method: data.valuation_method,
-      created_at: data.created_at,
-      updated_at: data.updated_at
-    } as Company
+    return transformCompanyFromDB(data)
   }
 
   /**

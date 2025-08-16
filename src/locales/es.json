@@ -15,10 +15,18 @@
     "suppliers": "Proveedores",
     "parties": "Terceros",
     "warehouses": "Almacenes",
+    "stock_transfers": "Transferencias de Stock",
+    "warehouse_visualization": "Visualización 3D",
     "reports": "Reportes",
     "analytics": "Análisis",
     "settings": "Configuración",
-    "profile": "Mi Perfil"
+    "profile": "Mi Perfil",
+    "electronic_billing": "Facturación Electrónica",
+    "electronic_billing_dashboard": "Dashboard",
+    "electronic_billing_pending": "Pendientes",
+    "electronic_billing_documents": "Documentos",
+    "electronic_billing_monitor": "Monitor",
+    "electronic_billing_config": "Configuración"
   },
   "auth": {
     "login": "Iniciar Sesión",

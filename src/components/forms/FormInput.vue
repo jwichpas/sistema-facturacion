@@ -54,7 +54,7 @@ import { useField } from 'vee-validate'
 
 interface Props {
   name: string
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search'
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date'
   label?: string
   placeholder?: string
   hint?: string

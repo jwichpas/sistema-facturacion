@@ -357,6 +357,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useSalesStore } from '@/stores/sales'
 import { useProductStore } from '@/stores/product'
 import { usePartyStore } from '@/stores/party'
+import { useAuthStore } from '@/stores/auth'
 import type { SalesDocCreatePayload, SalesDocWithDetails } from '@/services/sales'
 import type { Product } from '@/services/product'
 import type { Party } from '@/services/party'
@@ -383,6 +384,7 @@ const emit = defineEmits<{
 const salesStore = useSalesStore()
 const productStore = useProductStore()
 const partyStore = usePartyStore()
+const authStore = useAuthStore()
 
 // Local state
 const loading = ref(false)
@@ -512,6 +514,7 @@ const handleSubmit = async () => {
   try {
     const payload: SalesDocCreatePayload = {
       doc: {
+        company_id: authStore.currentCompany?.id || '',
         doc_type: form.value.doc_type,
         series: form.value.series,
         number: form.value.number,
@@ -537,6 +540,7 @@ const handleSubmit = async () => {
         })
 
         return {
+          company_id: authStore.currentCompany?.id || '',
           product_id: item.product_id || '',
           description: item.description || '',
           unit_code: item.unit_code,

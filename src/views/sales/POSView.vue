@@ -333,7 +333,7 @@ const addProductToCart = (product: ProductListItem) => {
       id: `cart-${Date.now()}-${product.id}`,
       product,
       quantity: 1,
-      unit_price: 0, // This should come from price list or be set by user
+      unit_price: 10.00, // Default price - user can edit in cart
       discount_pct: 0,
       igv_affectation: '10' // Default to taxable
     })
@@ -408,6 +408,8 @@ const updateTime = () => {
 }
 
 // Lifecycle
+let timeInterval: NodeJS.Timeout
+
 onMounted(async () => {
   // Load initial data
   await Promise.all([
@@ -417,11 +419,13 @@ onMounted(async () => {
 
   // Start clock
   updateTime()
-  const timeInterval = setInterval(updateTime, 1000)
+  timeInterval = setInterval(updateTime, 1000)
+})
 
-  // Cleanup on unmount
-  onUnmounted(() => {
+// Cleanup on unmount
+onUnmounted(() => {
+  if (timeInterval) {
     clearInterval(timeInterval)
-  })
+  }
 })
 </script>

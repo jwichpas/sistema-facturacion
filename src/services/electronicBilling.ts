@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import type { Company, SalesDoc } from '@/types'
 import type { Tables } from '@/types/database'
 
 export interface ElectronicBillingConfig {
@@ -408,16 +407,16 @@ export class ElectronicBillingService {
         company: {
           ruc: data.companies.ruc,
           legal_name: data.companies.legal_name,
-          trade_name: data.companies.trade_name,
-          address: data.companies.address,
-          ubigeo_code: data.companies.ubigeo_code
+          trade_name: data.companies.trade_name || undefined,
+          address: data.companies.address || undefined,
+          ubigeo_code: data.companies.ubigeo_code || undefined
         },
         customer: {
           doc_type: data.parties.doc_type,
           doc_number: data.parties.doc_number,
-          fullname: data.parties.fullname,
-          address: data.parties.address,
-          email: data.parties.email
+          fullname: data.parties.fullname || '',
+          address: data.parties.address || undefined,
+          email: data.parties.email || undefined
         },
         document: {
           doc_type: data.doc_type,
@@ -425,7 +424,7 @@ export class ElectronicBillingService {
           number: data.number,
           issue_date: data.issue_date,
           currency_code: data.currency_code,
-          exchange_rate: data.exchange_rate
+          exchange_rate: data.exchange_rate || undefined
         },
         items: items.map(item => ({
           description: item.description || '',
@@ -503,9 +502,9 @@ export class ElectronicBillingService {
 
       return {
         ...status,
-        sol_user: company.sol_user,
-        cert_path: company.cert_path,
-        production: company.production
+        sol_user: company.sol_user || undefined,
+        cert_path: company.cert_path || undefined,
+        production: company.production || undefined
       }
     } catch (error) {
       console.error('Error in getCompanyBillingConfig:', error)
@@ -637,7 +636,7 @@ export class ElectronicBillingService {
 
         return {
           success: true,
-          status: 'ACCEPTED',
+          status: 'ACCEPTED' as const,
           ticket,
           cdr: cdrBytes,
           observations: []
@@ -645,7 +644,7 @@ export class ElectronicBillingService {
       } else {
         return {
           success: false,
-          status: 'REJECTED',
+          status: 'REJECTED' as const,
           error: 'Documento rechazado por SUNAT (simulado)',
           observations: ['Error de validación simulado']
         }
@@ -677,7 +676,7 @@ export class ElectronicBillingService {
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Simular respuesta de consulta
-      const statuses: ElectronicDocumentStatus[] = ['ACCEPTED', 'PENDING', 'REJECTED']
+      const statuses: ('ACCEPTED' | 'PENDING' | 'REJECTED')[] = ['ACCEPTED', 'PENDING', 'REJECTED']
       const randomStatus = statuses[Math.floor(Math.random() * statuses.length)]
 
       return {
@@ -744,10 +743,13 @@ export class ElectronicBillingService {
     hash: string
   ): Promise<void> {
     try {
+      // Convert Uint8Array to base64 string for storage
+      const xmlString = btoa(String.fromCharCode(...xml))
+
       const { error } = await supabase
         .from('sales_docs')
         .update({
-          greenter_xml: xml,
+          greenter_xml: xmlString,
           greenter_hash: hash,
           updated_at: new Date().toISOString()
         })
@@ -768,10 +770,13 @@ export class ElectronicBillingService {
    */
   private static async saveCDR(salesDocId: string, cdr: Uint8Array): Promise<void> {
     try {
+      // Convert Uint8Array to base64 string for storage
+      const cdrString = btoa(String.fromCharCode(...cdr))
+
       const { error } = await supabase
         .from('sales_docs')
         .update({
-          greenter_cdr: cdr,
+          greenter_cdr: cdrString,
           updated_at: new Date().toISOString()
         })
         .eq('id', salesDocId)
@@ -1009,15 +1014,23 @@ export class ElectronicBillingService {
   static async getBillingStatus(companyId: string): Promise<ElectronicBillingStatus | null> {
     try {
       const { data, error } = await supabase
-        .rpc('get_electronic_billing_status', { p_company_id: companyId })
+        .from('companies')
+        .select('sol_user, sol_pass, cert_path, production')
+        .eq('id', companyId)
         .single()
 
       if (error) {
         console.error('Error getting billing status:', error)
-        throw error
+        return null
       }
 
-      return data
+      return {
+        has_config: !!(data.sol_user && data.sol_pass),
+        production_mode: data.production || false,
+        sol_user_configured: !!data.sol_user,
+        cert_configured: !!data.cert_path,
+        api_configured: !!(data.sol_user && data.sol_pass)
+      }
     } catch (error) {
       console.error('Error in getBillingStatus:', error)
       return null
@@ -1025,254 +1038,551 @@ export class ElectronicBillingService {
   }
 
   /**
-   * Configurar facturación electrónica para una empresa
+   * Obtener resumen de facturación electrónica
    */
-  static async configureElectronicBilling(
+  static async getBillingSummary(
     companyId: string,
-    config: ElectronicBillingConfig
+    dateFrom?: string,
+    dateTo?: string
+  ): Promise<{
+    total_documents: number
+    accepted: number
+    pending: number
+    rejected: number
+    errors: number
+    acceptance_rate: number
+    recent_errors: any[]
+  }> {
+    try {
+      let query = supabase
+        .from('sales_docs')
+        .select('greenter_status, error_message, doc_type, series, number, created_at')
+        .eq('company_id', companyId)
+
+      if (dateFrom) {
+        query = query.gte('issue_date', dateFrom)
+      }
+
+      if (dateTo) {
+        query = query.lte('issue_date', dateTo)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+
+      const summary = {
+        total_documents: data.length,
+        accepted: 0,
+        pending: 0,
+        rejected: 0,
+        errors: 0,
+        acceptance_rate: 0,
+        recent_errors: []
+      }
+
+      const recentErrors: any[] = []
+
+      data.forEach((doc: any) => {
+        const status = doc.greenter_status || 'DRAFT'
+
+        switch (status) {
+          case 'ACCEPTED':
+            summary.accepted++
+            break
+          case 'PENDING':
+          case 'GENERATING':
+          case 'SUBMITTED':
+            summary.pending++
+            break
+          case 'REJECTED':
+            summary.rejected++
+            if (doc.error_message) {
+              recentErrors.push({
+                id: `${doc.series}-${doc.number}`,
+                doc_type: doc.doc_type,
+                series: doc.series,
+                number: doc.number,
+                error_message: doc.error_message,
+                created_at: doc.created_at
+              })
+            }
+            break
+          case 'ERROR':
+            summary.errors++
+            if (doc.error_message) {
+              recentErrors.push({
+                id: `${doc.series}-${doc.number}`,
+                doc_type: doc.doc_type,
+                series: doc.series,
+                number: doc.number,
+                error_message: doc.error_message,
+                created_at: doc.created_at
+              })
+            }
+            break
+        }
+      })
+
+      summary.acceptance_rate = summary.total_documents > 0
+        ? (summary.accepted / summary.total_documents) * 100
+        : 0
+
+      summary.recent_errors = recentErrors
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5)
+
+      return summary
+    } catch (error) {
+      console.error('Error getting billing summary:', error)
+      return {
+        total_documents: 0,
+        accepted: 0,
+        pending: 0,
+        rejected: 0,
+        errors: 0,
+        acceptance_rate: 0,
+        recent_errors: []
+      }
+    }
+  }
+
+  /**
+   * Procesar documentos en lote
+   */
+  static async processBatch(
+    companyId: string,
+    documentIds: string[],
+    options: { maxConcurrent?: number } = {}
+  ): Promise<{
+    processed: number
+    successful: number
+    failed: number
+    results: Record<string, { success: boolean; error?: string }>
+  }> {
+    const { maxConcurrent = 3 } = options
+    const results: Record<string, { success: boolean; error?: string }> = {}
+    let processed = 0
+    let successful = 0
+    let failed = 0
+
+    // Process in batches
+    for (let i = 0; i < documentIds.length; i += maxConcurrent) {
+      const batch = documentIds.slice(i, i + maxConcurrent)
+
+      const promises = batch.map(async (docId) => {
+        try {
+          const result = await this.processElectronicDocument(companyId, docId)
+          results[docId] = { success: result.success, error: result.error }
+
+          if (result.success) {
+            successful++
+          } else {
+            failed++
+          }
+
+          processed++
+          return result
+        } catch (error: any) {
+          results[docId] = { success: false, error: error.message }
+          failed++
+          processed++
+          return { success: false, error: error.message }
+        }
+      })
+
+      await Promise.all(promises)
+
+      // Small delay between batches
+      if (i + maxConcurrent < documentIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+    }
+
+    return { processed, successful, failed, results }
+  }
+
+  /**
+   * Probar conexión con SUNAT
+   */
+  static async testConnection(companyId: string): Promise<{
+    success: boolean
+    message: string
+  }> {
+    try {
+      const config = await this.getCompanyBillingConfig(companyId)
+
+      if (!config.has_config) {
+        return {
+          success: false,
+          message: 'Configuración de facturación electrónica incompleta'
+        }
+      }
+
+      // Simular prueba de conexión
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      // Simular resultado (90% éxito)
+      const isSuccess = Math.random() > 0.1
+
+      return {
+        success: isSuccess,
+        message: isSuccess
+          ? `Conexión exitosa con SUNAT (${config.production ? 'Producción' : 'Beta'})`
+          : 'Error de conexión con SUNAT. Verifique sus credenciales.'
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Error al probar la conexión'
+      }
+    }
+  }
+
+  /**
+   * Cancelar documento electrónico
+   */
+  static async cancelElectronicDocument(
+    companyId: string,
+    salesDocId: string,
+    reason: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      // Validar configuración
-      if (!config.sol_user?.trim()) {
-        throw new Error('Usuario SOL es requerido')
-      }
-
-      if (!config.cert_path?.trim()) {
-        throw new Error('Certificado digital es requerido')
-      }
-
       const { error } = await supabase
-        .from('companies')
+        .from('sales_docs')
         .update({
-          sol_user: config.sol_user,
-          sol_pass: config.sol_pass, // Se almacena encriptado en el trigger
-          cert_path: config.cert_path,
-          client_id: config.client_id,
-          client_secret: config.client_secret,
-          production: config.production
+          greenter_status: 'CANCELLED',
+          error_message: `Cancelado: ${reason}`,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', companyId)
+        .eq('id', salesDocId)
+        .eq('company_id', companyId)
 
       if (error) {
-        console.error('Error configuring electronic billing:', error)
-        throw error
+        console.error('Error cancelling document:', error)
+        return { success: false, error: error.message }
       }
 
       return { success: true }
+    } catch (error: unknown) {
+      console.error('Error in cancelElectronicDocument:', error)
+      return { success: false, error: error.message }
+    }
+  }
+
+  // ========================================
+  // DOWNLOAD METHODS
+  // ========================================
+
+  /**
+   * Descargar XML del documento
+   */
+  static async downloadXML(
+    companyId: string,
+    salesDocId: string
+  ): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
+    try {
+      const doc = await this.getSalesDocumentById(salesDocId)
+      if (!doc || !doc.greenter_xml) {
+        return {
+          success: false,
+          error: 'El documento no tiene XML generado'
+        }
+      }
+
+      let xmlContent: string
+      let xmlBytes: Uint8Array
+
+      try {
+        // Verificar si el contenido está en base64
+        if (this.isBase64(doc.greenter_xml)) {
+          // Convertir base64 a bytes
+          xmlBytes = Uint8Array.from(atob(doc.greenter_xml), c => c.charCodeAt(0))
+          xmlContent = new TextDecoder().decode(xmlBytes)
+        } else {
+          // El contenido ya está en texto plano
+          xmlContent = doc.greenter_xml
+          xmlBytes = new TextEncoder().encode(xmlContent)
+        }
+      } catch (base64Error) {
+        console.warn('Error decoding base64, treating as plain text:', base64Error)
+        // Si falla la decodificación base64, tratar como texto plano
+        xmlContent = doc.greenter_xml
+        xmlBytes = new TextEncoder().encode(xmlContent)
+      }
+
+      // Validar que el contenido sea XML válido
+      if (!xmlContent.trim().startsWith('<?xml') && !xmlContent.trim().startsWith('<')) {
+        return {
+          success: false,
+          error: 'El contenido del archivo no es un XML válido'
+        }
+      }
+
+      // Crear blob
+      const blob = new Blob([xmlBytes], { type: 'application/xml' })
+
+      // Generar nombre de archivo
+      const filename = `${doc.series}-${doc.number}.xml`
+
+      return {
+        success: true,
+        blob,
+        filename
+      }
     } catch (error: any) {
-      console.error('Error in configureElectronicBilling:', error)
+      console.error('Error downloading XML:', error)
       return {
         success: false,
-        error: error.message || 'Error al configurar facturación electrónica'
+        error: error.message || 'Error al descargar XML'
       }
     }
   }
 
   /**
-   * Subir certificado digital al storage
+   * Descargar CDR del documento
    */
-  static async uploadCertificate(
+  static async downloadCDR(
     companyId: string,
-    file: File
-  ): Promise<CertificateUploadResult> {
+    salesDocId: string
+  ): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
     try {
-      // Validar tipo de archivo
-      const allowedTypes = ['.cer', '.p12', '.pfx']
-      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase()
-
-      if (!allowedTypes.includes(fileExtension)) {
-        throw new Error('Tipo de archivo no válido. Se permiten: .cer, .p12, .pfx')
+      const doc = await this.getSalesDocumentById(salesDocId)
+      if (!doc || !doc.greenter_cdr) {
+        return {
+          success: false,
+          error: 'El documento no tiene CDR disponible'
+        }
       }
 
-      // Validar tamaño (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error('El archivo no puede superar los 5MB')
+      let cdrContent: string
+      let cdrBytes: Uint8Array
+
+      try {
+        // Verificar si el contenido está en base64
+        if (this.isBase64(doc.greenter_cdr)) {
+          // Convertir base64 a bytes
+          cdrBytes = Uint8Array.from(atob(doc.greenter_cdr), c => c.charCodeAt(0))
+          cdrContent = new TextDecoder().decode(cdrBytes)
+        } else {
+          // El contenido ya está en texto plano
+          cdrContent = doc.greenter_cdr
+          cdrBytes = new TextEncoder().encode(cdrContent)
+        }
+      } catch (base64Error) {
+        console.warn('Error decoding base64, treating as plain text:', base64Error)
+        // Si falla la decodificación base64, tratar como texto plano
+        cdrContent = doc.greenter_cdr
+        cdrBytes = new TextEncoder().encode(cdrContent)
       }
 
-      // Generar nombre único para el archivo
-      const timestamp = Date.now()
-      const fileName = `certificates/${companyId}/${timestamp}_${file.name}`
-
-      // Subir archivo al storage
-      const { data, error } = await supabase.storage
-        .from('company-documents')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        })
-
-      if (error) {
-        console.error('Error uploading certificate:', error)
-        throw error
+      // Validar que el contenido sea XML válido
+      if (!cdrContent.trim().startsWith('<?xml') && !cdrContent.trim().startsWith('<')) {
+        return {
+          success: false,
+          error: 'El contenido del CDR no es un XML válido'
+        }
       }
 
-      // Obtener URL pública del archivo
-      const { data: urlData } = supabase.storage
-        .from('company-documents')
-        .getPublicUrl(data.path)
+      // Crear blob
+      const blob = new Blob([cdrBytes], { type: 'application/xml' })
+
+      // Generar nombre de archivo
+      const filename = `R-${doc.series}-${doc.number}.xml`
 
       return {
-        path: data.path,
-        url: urlData.publicUrl
+        success: true,
+        blob,
+        filename
       }
     } catch (error: any) {
-      console.error('Error in uploadCertificate:', error)
+      console.error('Error downloading CDR:', error)
       return {
-        path: '',
-        url: '',
-        error: error.message || 'Error al subir certificado'
+        success: false,
+        error: error.message || 'Error al descargar CDR'
       }
     }
   }
 
   /**
-   * Eliminar certificado del storage
+   * Descargar ambos archivos (XML y CDR) en un ZIP
    */
-  static async removeCertificate(certPath: string): Promise<boolean> {
+  static async downloadDocumentFiles(
+    companyId: string,
+    salesDocId: string
+  ): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
     try {
-      const { error } = await supabase.storage
-        .from('company-documents')
-        .remove([certPath])
-
-      if (error) {
-        console.error('Error removing certificate:', error)
-        throw error
+      const doc = await this.getSalesDocumentById(salesDocId)
+      if (!doc) {
+        return {
+          success: false,
+          error: 'Documento no encontrado'
+        }
       }
 
+      // Verificar que tenga al menos XML
+      if (!doc.greenter_xml) {
+        return {
+          success: false,
+          error: 'El documento no tiene archivos para descargar'
+        }
+      }
+
+      // Crear un objeto con los archivos disponibles
+      const files: { name: string; content: Uint8Array }[] = []
+
+      // Agregar XML
+      if (doc.greenter_xml) {
+        try {
+          let xmlBytes: Uint8Array
+          if (this.isBase64(doc.greenter_xml)) {
+            xmlBytes = Uint8Array.from(atob(doc.greenter_xml), c => c.charCodeAt(0))
+          } else {
+            xmlBytes = new TextEncoder().encode(doc.greenter_xml)
+          }
+          files.push({
+            name: `${doc.series}-${doc.number}.xml`,
+            content: xmlBytes
+          })
+        } catch (error) {
+          console.warn('Error processing XML, skipping:', error)
+        }
+      }
+
+      // Agregar CDR si existe
+      if (doc.greenter_cdr) {
+        try {
+          let cdrBytes: Uint8Array
+          if (this.isBase64(doc.greenter_cdr)) {
+            cdrBytes = Uint8Array.from(atob(doc.greenter_cdr), c => c.charCodeAt(0))
+          } else {
+            cdrBytes = new TextEncoder().encode(doc.greenter_cdr)
+          }
+          files.push({
+            name: `R-${doc.series}-${doc.number}.xml`,
+            content: cdrBytes
+          })
+        } catch (error) {
+          console.warn('Error processing CDR, skipping:', error)
+        }
+      }
+
+      // Si solo hay un archivo, devolverlo directamente
+      if (files.length === 1) {
+        const file = files[0]
+        const blob = new Blob([file.content], { type: 'application/xml' })
+        return {
+          success: true,
+          blob,
+          filename: file.name
+        }
+      }
+
+      // Si hay múltiples archivos, crear un ZIP simple (simulado)
+      // En un entorno real, usarías una librería como JSZip
+      const zipContent = this.createSimpleZip(files)
+      const blob = new Blob([zipContent], { type: 'application/zip' })
+
+      return {
+        success: true,
+        blob,
+        filename: `${doc.series}-${doc.number}.zip`
+      }
+    } catch (error: unknown) {
+      console.error('Error downloading document files:', error)
+      return {
+        success: false,
+        error: error.message || 'Error al descargar archivos'
+      }
+    }
+  }
+
+  /**
+   * Crear un ZIP simple (simulado)
+   * En producción, usar una librería como JSZip
+   */
+  private static createSimpleZip(files: { name: string; content: Uint8Array }[]): Uint8Array {
+    // Esta es una implementación muy básica
+    // En producción, usar JSZip o similar
+    let zipContent = 'PK\x03\x04' // Signature básica de ZIP
+
+    for (const file of files) {
+      zipContent += file.name + '\n'
+      zipContent += new TextDecoder().decode(file.content) + '\n'
+    }
+
+    return new TextEncoder().encode(zipContent)
+  }
+
+  /**
+   * Utilidad para descargar un blob como archivo
+   */
+  static downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  /**
+   * Verificar si una cadena está en formato base64 válido
+   */
+  private static isBase64(str: string): boolean {
+    try {
+      // Verificar que la cadena tenga el formato correcto de base64
+      if (!str || str.length === 0) return false
+
+      // Base64 debe tener longitud múltiplo de 4 (con padding si es necesario)
+      if (str.length % 4 !== 0) return false
+
+      // Verificar caracteres válidos de base64
+      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/
+      if (!base64Regex.test(str)) return false
+
+      // Intentar decodificar para verificar que es válido
+      atob(str)
       return true
     } catch (error) {
-      console.error('Error in removeCertificate:', error)
       return false
     }
   }
 
   /**
-   * Validar configuración de facturación electrónica
+   * Regenerar XML simulado para documentos con datos corruptos
    */
-  static async validateConfiguration(companyId: string): Promise<{
-    valid: boolean
-    errors: string[]
-    warnings: string[]
-  }> {
-    try {
-      const errors: string[] = []
-      const warnings: string[] = []
-
-      // Obtener datos de la empresa
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .select('ruc, sol_user, cert_path, production')
-        .eq('id', companyId)
-        .single()
-
-      if (companyError || !company) {
-        errors.push('No se pudo obtener datos de la empresa')
-        return { valid: false, errors, warnings }
-      }
-
-      // Validar RUC
-      if (!company.ruc || company.ruc.length !== 11) {
-        errors.push('RUC debe tener 11 dígitos')
-      }
-
-      // Validar usuario SOL
-      if (!company.sol_user?.trim()) {
-        errors.push('Usuario SOL es requerido')
-      } else if (!company.sol_user.includes(company.ruc)) {
-        warnings.push('El usuario SOL debería contener el RUC de la empresa')
-      }
-
-      // Validar certificado
-      if (!company.cert_path?.trim()) {
-        errors.push('Certificado digital es requerido')
-      }
-
-      // Validar ambiente de producción
-      if (company.production) {
-        warnings.push('Configurado para ambiente de PRODUCCIÓN. Verificar que todos los datos sean correctos.')
-      } else {
-        warnings.push('Configurado para ambiente de PRUEBAS/BETA.')
-      }
-
-      const valid = errors.length === 0
-
-      return { valid, errors, warnings }
-    } catch (error) {
-      console.error('Error in validateConfiguration:', error)
-      return {
-        valid: false,
-        errors: ['Error al validar configuración'],
-        warnings: []
-      }
-    }
-  }
-
-  /**
-   * Cambiar ambiente de facturación (producción/pruebas)
-   */
-  static async switchEnvironment(
+  static async regenerateXMLForDocument(
     companyId: string,
-    production: boolean
+    salesDocId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
-        .from('companies')
-        .update({ production })
-        .eq('id', companyId)
-
-      if (error) {
-        console.error('Error switching environment:', error)
-        throw error
-      }
-
-      return { success: true }
-    } catch (error: any) {
-      console.error('Error in switchEnvironment:', error)
-      return {
-        success: false,
-        error: error.message || 'Error al cambiar ambiente de facturación'
-      }
-    }
-  }
-
-  /**
-   * Verificar conexión con SUNAT (simulado)
-   */
-  static async testConnection(companyId: string): Promise<{
-    success: boolean
-    message: string
-    environment: 'production' | 'beta'
-  }> {
-    try {
-      // Obtener configuración
-      const status = await this.getBillingStatus(companyId)
-
-      if (!status?.has_config) {
+      // Obtener datos del documento para regenerar XML
+      const invoiceData = await this.getInvoiceDataForXML(companyId, salesDocId)
+      if (!invoiceData) {
         return {
           success: false,
-          message: 'Configuración de facturación electrónica incompleta',
-          environment: 'beta'
+          error: 'No se pudieron obtener los datos del documento'
         }
       }
 
-      // En un entorno real, aquí se haría una prueba de conexión real con SUNAT
-      // Por ahora, simulamos la validación
-      const environment = status.production_mode ? 'production' : 'beta'
+      // Generar nuevo XML simulado
+      const xmlContent = this.generateSimulatedXML(invoiceData)
+      const xmlBytes = new TextEncoder().encode(xmlContent)
+      const hash = await this.generateXMLHash(xmlBytes)
 
-      return {
-        success: true,
-        message: `Conexión exitosa con SUNAT (${environment.toUpperCase()})`,
-        environment
-      }
+      // Guardar el nuevo XML
+      await this.saveGeneratedXML(salesDocId, xmlBytes, hash)
+
+      return { success: true }
     } catch (error: any) {
-      console.error('Error in testConnection:', error)
+      console.error('Error regenerating XML:', error)
       return {
         success: false,
-        message: error.message || 'Error al probar conexión con SUNAT',
-        environment: 'beta'
+        error: error.message || 'Error al regenerar XML'
       }
     }
   }
 }
-
-export default ElectronicBillingService

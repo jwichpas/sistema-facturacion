@@ -65,6 +65,56 @@ export interface WarehouseZone {
   updated_at: string
 }
 
+// Stock Transfer Types
+export interface StockTransfer {
+  id: string
+  company_id: string
+  from_warehouse_id: string
+  to_warehouse_id: string
+  transfer_date: string
+  reason?: string
+  modality?: string
+  notes?: string
+  vehicle_id?: string
+  driver_id?: string
+  created_at: string
+}
+
+export interface StockTransferItem {
+  id: string
+  company_id: string
+  transfer_id: string
+  product_id: string
+  quantity: number
+  unit_code: string
+}
+
+// Vehicle and Driver Types
+export interface Vehicle {
+  id: string
+  company_id: string
+  plate: string
+  brand?: string
+  model?: string
+  year?: number
+  capacity_kg?: number
+  own?: boolean
+  provider_party_id?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Driver {
+  id: string
+  company_id: string
+  party_id: string
+  license_number: string
+  license_class?: string
+  valid_until?: string
+  created_at: string
+  updated_at: string
+}
+
 // User and Authentication Types
 export interface User {
   id: string
@@ -280,31 +330,42 @@ export interface SalesDocItem {
 export interface PurchaseDoc {
   id: string
   company_id: string
-  branch_id?: string
   supplier_id: string
   doc_type: string
   series: string
-  number: number
+  number: string
   issue_date: string
+  arrival_date?: string
   currency_code: string
   exchange_rate?: number
+  op_type?: string
+  total_ope_gravadas: number
+  total_ope_exoneradas: number
+  total_ope_inafectas: number
+  total_igv: number
+  total_isc: number
+  total_descuentos: number
+  total_otros_cargos: number
   total: number
   created_at: string
   updated_at: string
-  items: PurchaseDocItem[]
 }
 
 export interface PurchaseDocItem {
   id: string
+  company_id: string
   purchase_doc_id: string
   product_id: string
   description?: string
   unit_code: string
   quantity: number
-  unit_price: number
+  unit_cost: number
   discount_pct: number
+  igv_affectation: string
   igv_amount: number
+  isc_amount: number
   total_line: number
+  created_at: string
 }
 
 // UI and Application Types
@@ -424,4 +485,104 @@ export interface UserCompanyRole {
   created_at: string
   updated_at: string
   role?: CompanyRole
+}
+
+// Electronic Invoicing Types
+export interface ElectronicBillingConfig {
+  sol_user?: string
+  sol_pass?: string
+  cert_path?: string
+  client_id?: string
+  client_secret?: string
+  production: boolean
+}
+
+export interface ElectronicBillingStatus {
+  has_config: boolean
+  production_mode: boolean
+  sol_user_configured: boolean
+  cert_configured: boolean
+  api_configured: boolean
+}
+
+export type ElectronicDocumentStatus =
+  | 'DRAFT'           // Borrador, no enviado
+  | 'GENERATING'      // Generando XML
+  | 'PENDING'         // XML generado, pendiente de envío
+  | 'SUBMITTED'       // Enviado a SUNAT, esperando respuesta
+  | 'ACCEPTED'        // Aceptado por SUNAT
+  | 'REJECTED'        // Rechazado por SUNAT
+  | 'ERROR'           // Error en el proceso
+  | 'CANCELLED'       // Anulado
+
+export interface ElectronicDocumentInfo {
+  id: string
+  doc_type: string
+  series: string
+  number: number
+  issue_date: string
+  customer_name: string
+  total: number
+  status: ElectronicDocumentStatus
+  greenter_ticket?: string
+  has_xml: boolean
+  has_cdr: boolean
+  error_message?: string
+  observations?: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface SunatSubmissionResult {
+  success: boolean
+  ticket?: string
+  xml?: Uint8Array
+  cdr?: Uint8Array
+  hash?: string
+  error?: string
+  status: ElectronicDocumentStatus
+  observations?: string[]
+}
+
+export interface GreenterInvoiceData {
+  company: {
+    ruc: string
+    legal_name: string
+    trade_name?: string
+    address?: string
+    ubigeo_code?: string
+  }
+  customer: {
+    doc_type: string
+    doc_number: string
+    fullname: string
+    address?: string
+    email?: string
+  }
+  document: {
+    doc_type: string
+    series: string
+    number: number
+    issue_date: string
+    currency_code: string
+    exchange_rate?: number
+  }
+  items: Array<{
+    description: string
+    unit_code: string
+    quantity: number
+    unit_price: number
+    discount_pct: number
+    igv_affectation: string
+    igv_amount: number
+    total_line: number
+  }>
+  totals: {
+    total_ope_gravadas: number
+    total_ope_exoneradas: number
+    total_ope_inafectas: number
+    total_igv: number
+    total_descuentos: number
+    total: number
+  }
 }

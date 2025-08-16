@@ -183,6 +183,10 @@ import {
   Settings,
   UserCheck,
   CreditCard,
+  ArrowRightLeft,
+  Box,
+  Clock,
+  Activity,
 } from 'lucide-vue-next'
 
 interface NavigationItem {
@@ -202,7 +206,7 @@ const route = useRoute()
 const isMobile = inject('isMobile', ref(false))
 
 // Expanded groups state
-const expandedGroups = ref(new Set<string>(['dashboard']))
+const expandedGroups = ref(new Set<string>(['dashboard', 'inventory']))
 
 // Navigation items
 const navigationItems: NavigationItem[] = [
@@ -229,6 +233,20 @@ const navigationItems: NavigationItem[] = [
         label: 'nav.warehouses',
         icon: Warehouse,
         route: '/warehouses',
+        permissions: ['warehouses.read'],
+      },
+      {
+        id: 'stock-transfers',
+        label: 'nav.stock_transfers',
+        icon: ArrowRightLeft,
+        route: '/warehouses/transfers',
+        permissions: ['warehouses.read'],
+      },
+      {
+        id: 'warehouse-visualization',
+        label: 'nav.warehouse_visualization',
+        icon: Box,
+        route: '/warehouses/visualization',
         permissions: ['warehouses.read'],
       },
     ],
@@ -279,6 +297,48 @@ const navigationItems: NavigationItem[] = [
         icon: UserCheck,
         route: '/suppliers',
         permissions: ['parties.read'],
+      },
+    ],
+  },
+  {
+    id: 'electronic-billing',
+    label: 'nav.electronic_billing',
+    icon: FileText,
+    children: [
+      {
+        id: 'electronic-billing-dashboard',
+        label: 'nav.electronic_billing_dashboard',
+        icon: BarChart3,
+        route: '/electronic-billing',
+        permissions: ['electronic_billing.read'],
+      },
+      {
+        id: 'electronic-billing-pending',
+        label: 'nav.electronic_billing_pending',
+        icon: Clock,
+        route: '/electronic-billing/pending',
+        permissions: ['electronic_billing.read'],
+      },
+      {
+        id: 'electronic-billing-documents',
+        label: 'nav.electronic_billing_documents',
+        icon: FileText,
+        route: '/electronic-billing/documents',
+        permissions: ['electronic_billing.read'],
+      },
+      {
+        id: 'electronic-billing-monitor',
+        label: 'nav.electronic_billing_monitor',
+        icon: Activity,
+        route: '/electronic-billing/monitor',
+        permissions: ['electronic_billing.read'],
+      },
+      {
+        id: 'electronic-billing-config',
+        label: 'nav.electronic_billing_config',
+        icon: Settings,
+        route: '/electronic-billing/config',
+        permissions: ['electronic_billing.config'],
       },
     ],
   },

@@ -234,16 +234,16 @@ DECLARE
   admin_user UUID;
   product_info RECORD;
 BEGIN
-  -- Solo notificar si el stock está por debajo del mínimo
-  IF NEW.current_stock <= NEW.min_stock THEN
-    -- Obtener información del producto
-    SELECT p.name, p.sku, c.legal_name as company_name
-    INTO product_info
-    FROM products p
-    JOIN warehouses w ON w.id = NEW.warehouse_id
-    JOIN companies c ON c.id = w.company_id
-    WHERE p.id = NEW.product_id;
-    
+  -- Obtener información del producto (incluye min_stock)
+  SELECT p.name, p.sku, p.min_stock, c.legal_name as company_name
+  INTO product_info
+  FROM products p
+  JOIN warehouses w ON w.id = NEW.warehouse_id
+  JOIN companies c ON c.id = w.company_id
+  WHERE p.id = NEW.product_id;
+
+  -- current/balance stock actual
+  IF COALESCE(NEW.balance_qty, 0) <= COALESCE(product_info.min_stock, 0) THEN
     -- Obtener usuarios con permisos de inventario
     SELECT ARRAY(
       SELECT uc.user_id 
@@ -254,14 +254,14 @@ BEGIN
         AND uc.is_active = TRUE
         AND r.permissions ? 'inventory.warehouses'
     ) INTO admin_users;
-    
+
     -- Enviar notificación a cada usuario autorizado
     FOREACH admin_user IN ARRAY admin_users
     LOOP
       SELECT create_notification(
         'Stock Bajo',
         format('El producto %s (%s) tiene stock bajo: %s unidades (mínimo: %s)', 
-               product_info.name, product_info.sku, NEW.current_stock, NEW.min_stock),
+               product_info.name, product_info.sku, NEW.balance_qty, product_info.min_stock),
         'stock_low'::notification_type,
         admin_user,
         (SELECT company_id FROM warehouses WHERE id = NEW.warehouse_id),
@@ -269,13 +269,13 @@ BEGIN
         jsonb_build_object(
           'product_id', NEW.product_id,
           'warehouse_id', NEW.warehouse_id,
-          'current_stock', NEW.current_stock,
-          'min_stock', NEW.min_stock,
+          'current_stock', NEW.balance_qty,
+          'min_stock', product_info.min_stock,
           'product_name', product_info.name,
           'product_sku', product_info.sku
         ),
         'warehouse_stock',
-        NEW.id
+        NEW.warehouse_id || ':' || NEW.product_id
       ) INTO notification_id;
     END LOOP;
   END IF;

@@ -556,6 +556,59 @@ create table if not exists warehouse_stock (
   primary key (warehouse_id, product_id)
 );
 
+-- Controla la configuración de series por empresa, tipo de documento y almacén (opcional).
+CREATE TABLE public.document_series (
+    id BIGSERIAL PRIMARY KEY,
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    document_type_code VARCHAR(4) NOT NULL, -- Ej: 01 = Factura, 03 = Boleta
+    series VARCHAR(4) NOT NULL, -- Ej: F001, B001
+    warehouse_id UUID REFERENCES public.warehouses(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE (company_id, document_type_code, series)
+);
+
+-- Registra el último número usado para cada combinación de empresa + tipo de documento + serie.
+
+CREATE TABLE public.document_counters (
+    id BIGSERIAL PRIMARY KEY,
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    document_type_code VARCHAR(4) NOT NULL,
+    series VARCHAR(4) NOT NULL,
+    last_number BIGINT DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    UNIQUE (company_id, document_type_code, series)
+);
+
+-- Esto evita conflictos de concurrencia en ventas o facturación electrónica:
+CREATE OR REPLACE FUNCTION public.next_document_number(
+    p_company_id UUID,
+    p_document_type_code VARCHAR,
+    p_series VARCHAR
+)
+RETURNS BIGINT AS $$
+DECLARE
+    new_number BIGINT;
+BEGIN
+    UPDATE public.document_counters
+    SET last_number = last_number + 1,
+        updated_at = now()
+    WHERE company_id = p_company_id
+      AND document_type_code = p_document_type_code
+      AND series = p_series
+    RETURNING last_number INTO new_number;
+
+    IF new_number IS NULL THEN
+        INSERT INTO public.document_counters(company_id, document_type_code, series, last_number)
+        VALUES (p_company_id, p_document_type_code, p_series, 1)
+        RETURNING last_number INTO new_number;
+    END IF;
+
+    RETURN new_number;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Índices recomendados
 create index if not exists idx_stock_ledger_product_date on stock_ledger(company_id, product_id, movement_date);
 create index if not exists idx_sales_unique on sales_docs(company_id, doc_type, series, number);
@@ -626,3 +679,141 @@ select company_id, product_id, movement_date,
        sum(total_cost_out) salidas_costo_total
 from stock_ledger
 group by company_id, product_id, movement_date;
+-- RPC function to update warehouse stock balance
+create or replace function update_warehouse_stock_balance(
+  p_warehouse_id uuid,
+  p_product_id uuid,
+  p_qty_change numeric
+)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  -- Insert or update warehouse stock balance
+  insert into warehouse_stock (warehouse_id, product_id, balance_qty)
+  values (p_warehouse_id, p_product_id, p_qty_change)
+  on conflict (warehouse_id, product_id)
+  do update set balance_qty = warehouse_stock.balance_qty + p_qty_change;
+end;
+$$;
+
+-- Trigger function to automatically update warehouse stock when stock_ledger changes
+create or replace function update_warehouse_stock_from_ledger()
+returns trigger
+language plpgsql
+as $$
+begin
+  -- Update warehouse stock balance based on stock ledger entry
+  perform update_warehouse_stock_balance(
+    NEW.warehouse_id,
+    NEW.product_id,
+    NEW.qty_in - NEW.qty_out
+  );
+  
+  return NEW;
+end;
+$$;
+
+-- Create trigger on stock_ledger to automatically update warehouse_stock
+drop trigger if exists trigger_update_warehouse_stock on stock_ledger;
+create trigger trigger_update_warehouse_stock
+  after insert on stock_ledger
+  for each row
+  execute function update_warehouse_stock_from_ledger();
+
+-- Materialized view for monthly kardex (SUNAT reporting)
+create materialized view if not exists mv_kardex_mensual as
+with per_month as (
+  select
+    sl.company_id,
+    sl.product_id,
+    date_trunc('month', sl.movement_date) as periodo,
+    sum(sl.qty_in) as total_entradas,
+    sum(sl.qty_out) as total_salidas,
+    sum(sl.total_cost_in) as total_costo_entradas,
+    sum(sl.total_cost_out) as total_costo_salidas
+  from stock_ledger sl
+  group by sl.company_id, sl.product_id, date_trunc('month', sl.movement_date)
+)
+select
+  pm.company_id,
+  pm.product_id,
+  p.sku,
+  p.name as product_name,
+  p.unit_code,
+  pm.periodo,
+  pm.total_entradas,
+  pm.total_salidas,
+  pm.total_costo_entradas,
+  pm.total_costo_salidas,
+  last_rec.balance_qty as saldo_final_cantidad,
+  last_rec.balance_total_cost as saldo_final_costo
+from per_month pm
+join products p on p.id = pm.product_id
+left join lateral (
+  select sl2.balance_qty, sl2.balance_total_cost
+  from stock_ledger sl2
+  where sl2.company_id = pm.company_id
+    and sl2.product_id = pm.product_id
+    and date_trunc('month', sl2.movement_date) = pm.periodo
+  order by sl2.movement_date desc, sl2.created_at desc
+  limit 1
+) last_rec on true;
+
+-- Create indexes for the materialized view
+create unique index if not exists idx_mv_kardex_mensual_unique 
+  on mv_kardex_mensual (company_id, product_id, periodo);
+
+-- Function to refresh the materialized view
+create or replace function refresh_kardex_mensual()
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  refresh materialized view concurrently mv_kardex_mensual;
+end;
+$$;
+
+-- Enable RLS on all tables
+alter table companies enable row level security;
+alter table branches enable row level security;
+alter table warehouses enable row level security;
+alter table warehouse_zones enable row level security;
+alter table parties enable row level security;
+alter table party_contacts enable row level security;
+alter table brands enable row level security;
+alter table categories enable row level security;
+alter table products enable row level security;
+alter table product_images enable row level security;
+alter table product_codes enable row level security;
+alter table product_purchase_prices enable row level security;
+alter table price_lists enable row level security;
+alter table price_list_items enable row level security;
+alter table vehicles enable row level security;
+alter table drivers enable row level security;
+alter table sales_docs enable row level security;
+alter table sales_doc_items enable row level security;
+alter table purchase_docs enable row level security;
+alter table purchase_doc_items enable row level security;
+alter table stock_ledger enable row level security;
+alter table stock_transfers enable row level security;
+alter table stock_transfer_items enable row level security;
+alter table warehouse_stock enable row level security;
+
+-- Create triggers for updated_at on all tables
+create trigger update_companies_updated_at before update on companies for each row execute function update_updated_at_column();
+create trigger update_branches_updated_at before update on branches for each row execute function update_updated_at_column();
+create trigger update_warehouses_updated_at before update on warehouses for each row execute function update_updated_at_column();
+create trigger update_warehouse_zones_updated_at before update on warehouse_zones for each row execute function update_updated_at_column();
+create trigger update_parties_updated_at before update on parties for each row execute function update_updated_at_column();
+create trigger update_party_contacts_updated_at before update on party_contacts for each row execute function update_updated_at_column();
+create trigger update_brands_updated_at before update on brands for each row execute function update_updated_at_column();
+create trigger update_categories_updated_at before update on categories for each row execute function update_updated_at_column();
+create trigger update_products_updated_at before update on products for each row execute function update_updated_at_column();
+create trigger update_price_lists_updated_at before update on price_lists for each row execute function update_updated_at_column();
+create trigger update_vehicles_updated_at before update on vehicles for each row execute function update_updated_at_column();
+create trigger update_drivers_updated_at before update on drivers for each row execute function update_updated_at_column();
+create trigger update_sales_docs_updated_at before update on sales_docs for each row execute function update_updated_at_column();
+create trigger update_purchase_docs_updated_at before update on purchase_docs for each row execute function update_updated_at_column();

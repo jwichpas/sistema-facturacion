@@ -423,12 +423,12 @@ export const useAuthStore = defineStore('auth', () => {
       // Set timeout to refresh session 5 minutes before expiry
       const refreshTime = Math.max(0, (remaining - 300) * 1000)
 
-      sessionTimeout.value = setTimeout(async () => {
+      sessionTimeout.value = Number(setTimeout(async () => {
         const refreshed = await refreshSession()
         if (!refreshed) {
           await signOut()
         }
-      }, refreshTime) as unknown
+      }, refreshTime))
     }
   }
 

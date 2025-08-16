@@ -1,21 +1,43 @@
 import { supabase } from '@/services/supabase'
-import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
+import type { Database } from '@/types/database'
+import type {
+  Product,
+  Brand,
+  Category,
+  ProductImage,
+  ProductCode
+} from '@/types'
+import {
+  transformProductFromDB,
+  transformProductsFromDB,
+  transformBrandFromDB,
+  transformBrandsFromDB,
+  transformCategoryFromDB,
+  transformCategoriesFromDB,
+  transformProductImageFromDB,
+  transformProductImagesFromDB,
+  transformProductToDB,
+  transformBrandToDB,
+  transformCategoryToDB
+} from '@/utils/typeTransformers'
 
-export type Product = Tables<'products'>
-export type ProductInsert = TablesInsert<'products'>
-export type ProductUpdate = TablesUpdate<'products'>
-export type Brand = Tables<'brands'>
-export type BrandInsert = TablesInsert<'brands'>
-export type BrandUpdate = TablesUpdate<'brands'>
-export type Category = Tables<'categories'>
-export type CategoryInsert = TablesInsert<'categories'>
-export type CategoryUpdate = TablesUpdate<'categories'>
-export type WarehouseStock = Tables<'warehouse_stock'>
-export type ProductImage = Tables<'product_images'>
-export type ProductImageInsert = TablesInsert<'product_images'>
-export type ProductCode = Tables<'product_codes'>
-export type ProductCodeInsert = TablesInsert<'product_codes'>
-export type StockLedger = Tables<'stock_ledger'>
+// Database types for internal use
+type DbProduct = Database['public']['Tables']['products']['Row']
+type DbBrand = Database['public']['Tables']['brands']['Row']
+type DbCategory = Database['public']['Tables']['categories']['Row']
+type DbProductImage = Database['public']['Tables']['product_images']['Row']
+type DbProductCode = Database['public']['Tables']['product_codes']['Row']
+type DbStockLedger = Database['public']['Tables']['stock_ledger']['Row']
+type DbWarehouseStock = Database['public']['Tables']['warehouse_stock']['Row']
+
+export type ProductInsert = Database['public']['Tables']['products']['Insert']
+export type ProductUpdate = Database['public']['Tables']['products']['Update']
+export type BrandInsert = Database['public']['Tables']['brands']['Insert']
+export type BrandUpdate = Database['public']['Tables']['brands']['Update']
+export type CategoryInsert = Database['public']['Tables']['categories']['Insert']
+export type CategoryUpdate = Database['public']['Tables']['categories']['Update']
+export type ProductImageInsert = Database['public']['Tables']['product_images']['Insert']
+export type ProductCodeInsert = Database['public']['Tables']['product_codes']['Insert']
 
 // Extended interfaces for better UX
 export interface ProductWithDetails extends Product {
@@ -31,9 +53,9 @@ export interface ProductWithDetails extends Product {
   }>
 }
 
-export interface StockMovement extends StockLedger {
+export interface StockMovement extends DbStockLedger {
   product?: Pick<Product, 'id' | 'name' | 'sku'>
-  warehouse?: Pick<Tables<'warehouses'>, 'id' | 'name' | 'code'>
+  warehouse?: Pick<Database['public']['Tables']['warehouses']['Row'], 'id' | 'name' | 'code'>
 }
 
 export interface StockAlert {
@@ -116,7 +138,7 @@ export default class ProductService {
     const { data, error } = await query.order('created_at', { ascending: false })
     if (error) throw error
 
-    type JoinedProduct = Product & {
+    type JoinedProduct = DbProduct & {
       brands?: { name?: string } | null
       categories?: { name?: string } | null
       product_images?: Array<{ storage_path: string; is_primary: boolean | null }>
@@ -126,8 +148,10 @@ export default class ProductService {
       const primaryImage = p.product_images?.find(img => img.is_primary)?.storage_path ||
                           p.product_images?.[0]?.storage_path || null
 
+      // Transform the database product to application product, then add extra fields
+      const transformedProduct = transformProductFromDB(p)
       return {
-        ...(p as Product),
+        ...transformedProduct,
         brand_name: p.brands?.name ?? null,
         category_name: p.categories?.name ?? null,
         primary_image: primaryImage,
@@ -179,7 +203,7 @@ export default class ProductService {
       .eq('id', id)
       .single()
     if (error) throw error
-    return data
+    return data ? transformProductFromDB(data) : null
   }
 
   static async getProductWithDetails(companyId: string, id: string): Promise<ProductWithDetails | null> {
@@ -226,13 +250,13 @@ export default class ProductService {
   static async createProduct(payload: ProductInsert): Promise<Product> {
     const { data, error } = await supabase.from('products').insert(payload).select('*').single()
     if (error) throw error
-    return data
+    return transformProductFromDB(data)
   }
 
   static async updateProduct(id: string, payload: ProductUpdate): Promise<Product> {
     const { data, error } = await supabase.from('products').update(payload).eq('id', id).select('*').single()
     if (error) throw error
-    return data
+    return transformProductFromDB(data)
   }
 
   static async deleteProduct(id: string): Promise<void> {
@@ -247,9 +271,11 @@ export default class ProductService {
       .select('*')
       .eq('company_id', companyId)
 
-    if (filters.active !== null && filters.active !== undefined) {
-      query = query.eq('active', filters.active)
-    }
+    // Note: active field doesn't exist in DB yet, so we skip this filter for now
+    // TODO: Remove this comment after migration 20250816000001_add_missing_active_fields.sql is applied
+    // if (filters.active !== null && filters.active !== undefined) {
+    //   query = query.eq('active', filters.active)
+    // }
 
     if (filters.search && filters.search.trim() !== '') {
       const term = filters.search.trim()
@@ -258,7 +284,9 @@ export default class ProductService {
 
     const { data, error } = await query.order('name')
     if (error) throw error
-    return data
+
+    // Transform database types to application types
+    return transformBrandsFromDB(data || [])
   }
 
   static async getBrand(companyId: string, id: string): Promise<Brand | null> {
@@ -269,7 +297,7 @@ export default class ProductService {
       .eq('id', id)
       .single()
     if (error) throw error
-    return data
+    return data ? transformBrandFromDB(data) : null
   }
 
   static async createBrand(payload: BrandInsert): Promise<Brand> {
@@ -279,7 +307,7 @@ export default class ProductService {
       .select('*')
       .single()
     if (error) throw error
-    return data
+    return transformBrandFromDB(data)
   }
 
   static async updateBrand(id: string, payload: BrandUpdate): Promise<Brand> {
@@ -290,7 +318,7 @@ export default class ProductService {
       .select('*')
       .single()
     if (error) throw error
-    return data
+    return transformBrandFromDB(data)
   }
 
   static async deleteBrand(id: string): Promise<void> {
@@ -305,9 +333,11 @@ export default class ProductService {
       .select('*')
       .eq('company_id', companyId)
 
-    if (filters.active !== null && filters.active !== undefined) {
-      query = query.eq('active', filters.active)
-    }
+    // Note: active field doesn't exist in DB yet, so we skip this filter for now
+    // TODO: Remove this comment after migration 20250816000001_add_missing_active_fields.sql is applied
+    // if (filters.active !== null && filters.active !== undefined) {
+    //   query = query.eq('active', filters.active)
+    // }
 
     if (filters.parentId !== undefined) {
       if (filters.parentId === null) {
@@ -324,7 +354,7 @@ export default class ProductService {
 
     const { data, error } = await query.order('level').order('name')
     if (error) throw error
-    return data
+    return transformCategoriesFromDB(data || [])
   }
 
   static async getCategoriesTree(companyId: string): Promise<Category[]> {
@@ -332,12 +362,14 @@ export default class ProductService {
       .from('categories')
       .select('*')
       .eq('company_id', companyId)
-      .eq('active', true)
+      // Note: active field doesn't exist in DB yet, so we skip this filter for now
+      // TODO: Uncomment after migration 20250816000001_add_missing_active_fields.sql is applied
+      // .eq('active', true)
       .order('level')
       .order('name')
 
     if (error) throw error
-    return data
+    return transformCategoriesFromDB(data || [])
   }
 
   static async getCategory(companyId: string, id: string): Promise<Category | null> {
@@ -348,7 +380,7 @@ export default class ProductService {
       .eq('id', id)
       .single()
     if (error) throw error
-    return data
+    return data ? transformCategoryFromDB(data) : null
   }
 
   static async createCategory(payload: CategoryInsert): Promise<Category> {
@@ -358,7 +390,7 @@ export default class ProductService {
       .select('*')
       .single()
     if (error) throw error
-    return data
+    return transformCategoryFromDB(data)
   }
 
   static async updateCategory(id: string, payload: CategoryUpdate): Promise<Category> {
@@ -369,7 +401,7 @@ export default class ProductService {
       .select('*')
       .single()
     if (error) throw error
-    return data
+    return transformCategoryFromDB(data)
   }
 
   static async deleteCategory(id: string): Promise<void> {
@@ -405,14 +437,14 @@ export default class ProductService {
 
   static async findProductByCode(companyId: string, codeValue: string): Promise<Product | null> {
     // First try to find by main barcode
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('company_id', companyId)
       .eq('barcode', codeValue)
       .single()
 
-    if (!error && data) return data
+    if (!error && data) return transformProductFromDB(data)
 
     // Then try to find by alternative codes
     const { data: codeData, error: codeError } = await supabase
@@ -431,7 +463,7 @@ export default class ProductService {
       .single()
 
     if (productError) return null
-    return productData
+    return transformProductFromDB(productData)
   }
 
   // Stock Management
@@ -572,7 +604,7 @@ export default class ProductService {
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: false })
     if (error) throw error
-    return data
+    return transformProductImagesFromDB(data || [])
   }
 
   static async addImage(record: ProductImageInsert): Promise<ProductImage> {
@@ -590,7 +622,7 @@ export default class ProductService {
       .select('*')
       .single()
     if (error) throw error
-    return data
+    return transformProductImageFromDB(data)
   }
 
   static async updateImage(id: string, updates: Partial<ProductImageInsert>): Promise<ProductImage> {
@@ -618,7 +650,7 @@ export default class ProductService {
       .select('*')
       .single()
     if (error) throw error
-    return data
+    return transformProductImageFromDB(data)
   }
 
   static async removeImage(imageId: string): Promise<void> {

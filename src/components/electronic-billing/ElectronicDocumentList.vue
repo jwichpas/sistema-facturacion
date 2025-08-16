@@ -23,6 +23,14 @@
             <Send class="w-4 h-4 mr-2" />
             Procesar Pendientes ({{ pendingCount }})
           </button>
+          <button
+            @click="showBulkDownloadModal = true"
+            :disabled="loading || documentsWithFiles.length === 0"
+            class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            <Download class="w-4 h-4 mr-2" />
+            Descarga Masiva ({{ documentsWithFiles.length }})
+          </button>
         </div>
       </div>
 
@@ -228,18 +236,30 @@
             </div>
 
             <div class="ml-4 flex-shrink-0">
-              <ElectronicDocumentStatus
-                :status="doc.status"
-                :error-message="doc.error_message"
-                :observations="doc.observations"
-                :ticket="doc.greenter_ticket"
-                :has-xml="doc.has_xml"
-                :has-cdr="doc.has_cdr"
-                @retry="retryDocument(doc.id)"
-                @download-xml="downloadXML(doc.id)"
-                @download-cdr="downloadCDR(doc.id)"
-                @cancel="cancelDocument(doc.id)"
-              />
+              <div class="flex items-center gap-2">
+                <ElectronicDocumentStatus
+                  :status="doc.status"
+                  :error-message="doc.error_message"
+                  :observations="doc.observations"
+                  :ticket="doc.greenter_ticket"
+                  :has-xml="doc.has_xml"
+                  :has-cdr="doc.has_cdr"
+                  @retry="retryDocument(doc.id)"
+                  @download-xml="downloadXML(doc.id)"
+                  @download-cdr="downloadCDR(doc.id)"
+                  @cancel="cancelDocument(doc.id)"
+                />
+
+                <DownloadMenu
+                  v-if="doc.has_xml || doc.has_cdr"
+                  :document-id="doc.id"
+                  :has-xml="doc.has_xml"
+                  :has-cdr="doc.has_cdr"
+                  :doc-type="doc.doc_type"
+                  :series="doc.series"
+                  :number="doc.number"
+                />
+              </div>
             </div>
           </div>
         </li>
@@ -268,6 +288,14 @@
       @close="showCancelModal = false"
       @cancel="handleCancel"
     />
+
+    <!-- Bulk Download Modal -->
+    <BulkDownloadModal
+      v-if="showBulkDownloadModal"
+      :selected-documents="documentsWithFiles"
+      @close="showBulkDownloadModal = false"
+      @completed="handleBulkDownloadCompleted"
+    />
   </div>
 </template>
 
@@ -281,7 +309,8 @@ import {
   Clock,
   XCircle,
   TrendingUp,
-  Loader
+  Loader,
+  Download
 } from 'lucide-vue-next'
 import { ElectronicBillingService } from '@/services/electronicBilling'
 import { useAuthStore } from '@/stores/auth'
@@ -289,6 +318,9 @@ import { useNotificationStore } from '@/stores/notifications'
 import ElectronicDocumentStatus from './ElectronicDocumentStatus.vue'
 import RetryModal from './RetryModal.vue'
 import CancelModal from './CancelModal.vue'
+import DownloadMenu from './DownloadMenu.vue'
+import BulkDownloadModal from './BulkDownloadModal.vue'
+import DownloadErrorModal from './DownloadErrorModal.vue'
 import type { ElectronicDocumentInfo } from '@/types'
 
 const authStore = useAuthStore()
@@ -316,11 +348,23 @@ const filters = reactive({
 const showRetryModal = ref(false)
 const showCancelModal = ref(false)
 const selectedDocumentId = ref('')
+const showBulkDownloadModal = ref(false)
+const showDownloadErrorModal = ref(false)
+const downloadError = ref({
+  documentInfo: null as any,
+  fileType: 'xml' as 'xml' | 'cdr',
+  errorMessage: '',
+  technicalDetails: ''
+})
 
 const pendingCount = computed(() => {
   return documents.value.filter(doc =>
     ['DRAFT', 'PENDING', 'GENERATING'].includes(doc.status)
   ).length
+})
+
+const documentsWithFiles = computed(() => {
+  return documents.value.filter(doc => doc.has_xml || doc.has_cdr)
 })
 
 onMounted(() => {
@@ -378,23 +422,56 @@ async function processPendingDocuments() {
   if (!authStore.currentCompany?.id) return
 
   const pendingDocs = documents.value
-    .filter(doc => ['DRAFT', 'PENDING'].includes(doc.status))
+    .filter(doc => ['DRAFT', 'PENDING', 'GENERATING'].includes(doc.status))
     .map(doc => doc.id)
 
   if (pendingDocs.length === 0) return
 
   loading.value = true
+  let processed = 0
+  let successful = 0
+  let failed = 0
+
   try {
-    const result = await ElectronicBillingService.processBatch(
-      authStore.currentCompany.id,
-      pendingDocs,
-      { maxConcurrent: 3 }
-    )
+    // Process documents one by one with progress updates
+    for (const docId of pendingDocs) {
+      try {
+        const result = await ElectronicBillingService.processElectronicDocument(
+          authStore.currentCompany.id,
+          docId
+        )
+
+        processed++
+        if (result.success) {
+          successful++
+        } else {
+          failed++
+        }
+
+        // Update progress notification
+        notificationStore.addNotification({
+          type: 'info',
+          title: 'Procesando...',
+          message: `Procesados: ${processed}/${pendingDocs.length} - Exitosos: ${successful}, Fallidos: ${failed}`,
+          duration: 2000
+        })
+
+        // Refresh documents list periodically
+        if (processed % 3 === 0) {
+          await loadDocuments()
+        }
+
+      } catch (error) {
+        console.error(`Error processing document ${docId}:`, error)
+        processed++
+        failed++
+      }
+    }
 
     notificationStore.addNotification({
-      type: 'success',
+      type: successful === processed ? 'success' : 'warning',
       title: 'Procesamiento Completado',
-      message: `Procesados: ${result.processed}, Exitosos: ${result.successful}, Fallidos: ${result.failed}`
+      message: `Total: ${processed}, Exitosos: ${successful}, Fallidos: ${failed}`
     })
 
     refreshDocuments()
@@ -495,21 +572,94 @@ async function handleCancel(documentId: string, reason: string) {
 }
 
 async function downloadXML(documentId: string) {
-  // Implementar descarga de XML
-  notificationStore.addNotification({
-    type: 'info',
-    title: 'Descarga XML',
-    message: 'Funcionalidad de descarga XML en desarrollo'
-  })
+  if (!authStore.currentCompany?.id) return
+
+  try {
+    const result = await ElectronicBillingService.downloadXML(
+      authStore.currentCompany.id,
+      documentId
+    )
+
+    if (result.success && result.blob && result.filename) {
+      ElectronicBillingService.downloadBlob(result.blob, result.filename)
+      notificationStore.addNotification({
+        type: 'success',
+        title: 'Descarga Exitosa',
+        message: `XML descargado: ${result.filename}`
+      })
+    } else {
+      // Mostrar modal de error con opciones de recuperación
+      const doc = documents.value.find(d => d.id === documentId)
+      if (doc) {
+        downloadError.value = {
+          documentInfo: doc,
+          fileType: 'xml',
+          errorMessage: result.error || 'Error al descargar XML',
+          technicalDetails: ''
+        }
+        showDownloadErrorModal.value = true
+      } else {
+        notificationStore.addNotification({
+          type: 'error',
+          title: 'Error de Descarga',
+          message: result.error || 'Error al descargar XML'
+        })
+      }
+    }
+  } catch (error: any) {
+    console.error('Error downloading XML:', error)
+
+    // Mostrar modal de error con detalles técnicos
+    const doc = documents.value.find(d => d.id === documentId)
+    if (doc) {
+      downloadError.value = {
+        documentInfo: doc,
+        fileType: 'xml',
+        errorMessage: 'Error técnico al descargar XML',
+        technicalDetails: error.message || error.toString()
+      }
+      showDownloadErrorModal.value = true
+    } else {
+      notificationStore.addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Error al descargar XML'
+      })
+    }
+  }
 }
 
 async function downloadCDR(documentId: string) {
-  // Implementar descarga de CDR
-  notificationStore.addNotification({
-    type: 'info',
-    title: 'Descarga CDR',
-    message: 'Funcionalidad de descarga CDR en desarrollo'
-  })
+  if (!authStore.currentCompany?.id) return
+
+  try {
+    const result = await ElectronicBillingService.downloadCDR(
+      authStore.currentCompany.id,
+      documentId
+    )
+
+    if (result.success && result.blob && result.filename) {
+      ElectronicBillingService.downloadBlob(result.blob, result.filename)
+      notificationStore.addNotification({
+        type: 'success',
+        title: 'Descarga Exitosa',
+        message: `CDR descargado: ${result.filename}`
+      })
+    } else {
+      notificationStore.addNotification({
+        type: 'error',
+        title: 'Error de Descarga',
+        message: result.error || 'Error al descargar CDR'
+      })
+    }
+  } catch (error: unknown) {
+    console.error('Error downloading CDR:', error)
+    notificationStore.addNotification({
+      type: 'error',
+      title: 'Error',
+      message: 'Error al descargar CDR'
+    })
+  }
 }
 
 function getDocTypeText(docType: string): string {
@@ -532,5 +682,14 @@ function formatCurrency(amount: number): string {
 function formatDate(date: string): string {
   return new Date(date).toLocaleDateString('es-PE')
 }
+
+function handleBulkDownloadCompleted(results: unknown) {
+  showBulkDownloadModal.value = false
+
+  notificationStore.addNotification({
+    type: 'success',
+    title: 'Descarga Masiva Completada',
+    message: `Se descargaron ${results.successful} de ${results.processed} archivos`
+  })
+}
 </script>
-</template>

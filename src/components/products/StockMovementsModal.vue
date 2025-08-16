@@ -38,7 +38,7 @@
               type="date"
               label="Desde"
               :model-value="dateFrom"
-              @update:model-value="dateFrom = $event"
+              @update:model-value="dateFrom = String($event)"
             />
           </div>
           <div class="flex-1">
@@ -47,7 +47,7 @@
               type="date"
               label="Hasta"
               :model-value="dateTo"
-              @update:model-value="dateTo = $event"
+              @update:model-value="dateTo = String($event)"
             />
           </div>
           <div class="flex items-end">

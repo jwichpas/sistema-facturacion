@@ -371,3 +371,16 @@ revoke insert, update, delete on all tables in schema sunat from authenticated, 
 
 -- Permitir al service_role
 grant all on all tables in schema sunat to service_role;
+
+ALTER TABLE public.document_counters DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.document_series DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_images DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_purchase_prices DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.purchase_doc_items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.purchase_docs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sales_doc_items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sales_docs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stock_ledger DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.warehouse_stock DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.warehouse_zones DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.warehouses DISABLE ROW LEVEL SECURITY;

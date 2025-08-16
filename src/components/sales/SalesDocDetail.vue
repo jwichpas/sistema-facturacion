@@ -6,7 +6,8 @@
         <div>
           <div class="flex items-center gap-3">
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-              {{ getDocTypeLabel(salesDoc.doc_type) }} {{ salesDoc.series }}-{{ salesDoc.number.toString().padStart(8, '0') }}
+              {{ getDocTypeLabel(salesDoc.doc_type) }} {{ salesDoc.series }}-{{ salesDoc.number.toString().padStart(8,
+                '0') }}
             </h1>
             <span :class="getStatusBadgeClass(salesDoc.greenter_status)">
               {{ getStatusLabel(salesDoc.greenter_status) }}
@@ -17,26 +18,18 @@
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <button
-            @click="$emit('edit', salesDoc.id)"
-            class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-          >
+          <button @click="$emit('edit', salesDoc.id)"
+            class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
             <Edit class="w-4 h-4 mr-2" />
             Editar
           </button>
-          <button
-            @click="$emit('print', salesDoc.id)"
-            class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-          >
+          <button @click="$emit('print', salesDoc.id)"
+            class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
             <Printer class="w-4 h-4 mr-2" />
             Imprimir
           </button>
-          <button
-            v-if="canSendToSunat"
-            @click="sendToSunat"
-            :disabled="sending"
-            class="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
-          >
+          <button v-if="canSendToSunat" @click="sendToSunat" :disabled="sending"
+            class="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50">
             <Send class="w-4 h-4 mr-2" />
             {{ sending ? 'Enviando...' : 'Enviar a SUNAT' }}
           </button>
@@ -149,22 +142,28 @@
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead class="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Producto/Servicio
               </th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Cantidad
               </th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Precio Unit.
               </th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Descuento
               </th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 IGV
               </th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <th
+                class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Total
               </th>
             </tr>
@@ -192,7 +191,7 @@
                 {{ formatCurrency(item.igv_amount || 0) }}
               </td>
               <td class="px-4 py-4 text-right text-sm font-medium text-gray-900 dark:text-white">
-                {{ formatCurrency(item.total_line + (item.igv_amount || 0)) }}
+                {{ formatCurrency(item.total_line) }}
               </td>
             </tr>
           </tbody>
@@ -258,7 +257,8 @@
     </div>
 
     <!-- Electronic Invoicing Details -->
-    <div v-if="salesDoc.greenter_status && salesDoc.greenter_status !== 'pending'" class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+    <div v-if="salesDoc.greenter_status && salesDoc.greenter_status !== 'pending'"
+      class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
       <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Detalles de Facturación Electrónica</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
@@ -275,19 +275,13 @@
           </div>
         </div>
         <div class="space-y-2">
-          <button
-            v-if="salesDoc.greenter_xml"
-            @click="downloadXML"
-            class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-          >
+          <button v-if="salesDoc.greenter_xml" @click="downloadXML"
+            class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
             <Download class="w-4 h-4 mr-2" />
             Descargar XML
           </button>
-          <button
-            v-if="salesDoc.greenter_cdr"
-            @click="downloadCDR"
-            class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 ml-2"
-          >
+          <button v-if="salesDoc.greenter_cdr" @click="downloadCDR"
+            class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 ml-2">
             <Download class="w-4 h-4 mr-2" />
             Descargar CDR
           </button>
@@ -351,8 +345,8 @@ const error = computed(() => salesStore.error)
 
 const canSendToSunat = computed(() => {
   return salesDoc.value &&
-         ['01', '03', '07', '08'].includes(salesDoc.value.doc_type) &&
-         (!salesDoc.value.greenter_status || salesDoc.value.greenter_status === 'pending')
+    ['01', '03', '07', '08'].includes(salesDoc.value.doc_type) &&
+    (!salesDoc.value.greenter_status || salesDoc.value.greenter_status === 'pending')
 })
 
 // Methods

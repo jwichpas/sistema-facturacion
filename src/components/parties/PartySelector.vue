@@ -168,7 +168,8 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { Search, ChevronDown, X, User, Plus } from 'lucide-vue-next'
 import { usePartyStore } from '@/stores/party'
-import type { Party, PartyTransactionSummary } from '@/types'
+import type { PartyTransactionSummary } from '@/types'
+import type { Party } from '@/services/party'
 import PartyQuickCreateModal from './PartyQuickCreateModal.vue'
 import PartyTransactionHistoryModal from './PartyTransactionHistoryModal.vue'
 

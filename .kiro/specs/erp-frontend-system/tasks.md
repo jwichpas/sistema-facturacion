@@ -217,111 +217,133 @@
     - Implement document status dashboard
     - _Requirements: 10.2, 10.4_
 
-- [ ] 14. SUNAT Reporting System
-  - [ ] 14.1 Create reporting store and services
+- [-] 14. Build Error Resolution and Type Safety
+  - [x] 14.1 Fix TypeScript compilation errors
+    - Resolve all TypeScript type errors in electronic billing components
+    - Fix missing type definitions and interface mismatches
+    - Ensure proper type imports and exports across all modules
+    - _Requirements: Code quality and build stability_
+
+  - [x] 14.2 Resolve build warnings and optimize bundle
+    - Fix all ESLint warnings and errors
+    - Optimize import statements and remove unused dependencies
+    - Ensure proper tree-shaking and code splitting
+    - Validate all component props and emit definitions
+    - _Requirements: Production build optimization_
+
+  - [x] 14.3 Resolve database type compatibility issues
+    - Create migration to add missing `active` fields to brands and categories tables
+    - Update application types to handle null vs undefined consistently with database schema
+    - Align auto-generated Supabase types with manually defined application interfaces
+    - Create type transformation utilities for database-to-application type conversion
+    - Fix remaining 60 minor type incompatibilities between DB schema and application code
+    - _Requirements: Type safety and database schema alignment_
+
+- [ ] 15. SUNAT Reporting System
+  - [ ] 15.1 Create reporting store and services
     - Implement report generation service using existing materialized views (mv_kardex_mensual)
     - Create SUNAT format exporters (12.1, 13.1) using v_sunat_formato_12_1 and v_sunat_formato_13_1 views
     - Add data validation and accuracy checks leveraging existing SUNAT catalog tables
     - Implement inventory header generation using v_sunat_inventory_header view
     - _Requirements: 11.1, 11.4_
 
-  - [ ] 14.2 Build reporting interface components
+  - [ ] 15.2 Build reporting interface components
     - Create report parameter selection forms
     - Build export functionality for Excel and CSV
     - Implement report preview and validation
     - _Requirements: 11.2, 11.3_
 
-- [ ] 15. Dashboard and Analytics
-  - [ ] 15.1 Create dashboard store and analytics services
+- [ ] 16. Dashboard and Analytics
+  - [ ] 16.1 Create dashboard store and analytics services
     - Implement dashboard data aggregation using existing materialized views and stock_ledger data
     - Create KPI calculation services leveraging sales_docs, purchase_docs, and inventory data
     - Add real-time data updates using Supabase real-time subscriptions
     - Implement notification integration using existing notification system
     - _Requirements: 12.1_
 
-  - [ ] 15.2 Build dashboard components with charts
+  - [ ] 16.2 Build dashboard components with charts
     - Create sales trend charts using ApexCharts with sales_docs data aggregation
     - Build inventory monitoring widgets using warehouse_stock and stock_ledger data
     - Implement financial overview components using sales/purchase totals and profit calculations
     - Add low stock alerts integration with existing notification_templates
     - _Requirements: 12.2, 12.3, 12.4_
 
-- [ ] 16. Notification System Integration
-  - [ ] 16.1 Implement notification management components
+- [ ] 17. Notification System Integration
+  - [ ] 17.1 Implement notification management components
     - Create notification center using existing notifications table
     - Build notification preferences interface using notification_preferences table
     - Implement notification templates management using notification_templates table
     - Add real-time notification delivery using notification_delivery_log tracking
     - _Requirements: System notifications and user preferences_
 
-  - [ ] 16.2 Integrate business process notifications
+  - [ ] 17.2 Integrate business process notifications
     - Connect sales document creation to notification system
     - Implement stock level alerts using existing notification types
     - Add user assignment notifications for company access
     - Create electronic billing status notifications
     - _Requirements: Business process automation_
 
-- [ ] 17. Search and Navigation Features
-  - [ ] 17.1 Implement global search functionality
+- [ ] 18. Search and Navigation Features
+  - [ ] 18.1 Implement global search functionality
     - Create unified search service across all modules
     - Build search results interface with categorization
     - Add keyboard shortcut handling (Ctrl+K)
     - _Requirements: 14.1, 14.2_
 
-  - [ ] 17.2 Create advanced filtering components
+  - [ ] 18.2 Create advanced filtering components
     - Build filter builder interface
     - Implement saved filter functionality
     - Add filter presets for common searches
     - _Requirements: 14.4_
 
-- [ ] 18. File Upload and Image Management
-  - [ ] 18.1 Create file upload service with Supabase Storage
+- [ ] 19. File Upload and Image Management
+  - [ ] 19.1 Create file upload service with Supabase Storage
     - Implement file upload with progress tracking
     - Create image optimization and resizing
     - Add file type validation and security checks
     - _Requirements: 5.4_
 
-  - [ ] 18.2 Build image management components
+  - [ ] 19.2 Build image management components
     - Create image upload component with preview using product_images table
     - Build image gallery and selection interface with is_primary flag support
     - Implement drag-and-drop upload functionality with storage_path management
     - Add image optimization and multiple format support for product catalogs
     - _Requirements: 5.4_
 
-- [ ] 19. PWA and Offline Capabilities
-  - [ ] 19.1 Configure PWA with Vite PWA plugin
+- [ ] 20. PWA and Offline Capabilities
+  - [ ] 20.1 Configure PWA with Vite PWA plugin
     - Set up service worker for caching
     - Configure offline fallback pages
     - Implement background sync for form data
     - _Requirements: 16.1, 16.2_
 
-  - [ ] 19.2 Implement offline data management
+  - [ ] 20.2 Implement offline data management
     - Create offline data storage with IndexedDB
     - Build sync mechanism for offline changes
     - Add offline status indicators
     - _Requirements: 16.2, 16.3_
 
-- [ ] 20. Testing Implementation
-  - [ ] 20.1 Set up testing framework and utilities
+- [ ] 21. Testing Implementation
+  - [ ] 21.1 Set up testing framework and utilities
     - Configure Vitest for unit testing
     - Set up Playwright for E2E testing
     - Create testing utilities and mocks
     - _Requirements: All requirements need testing coverage_
 
-  - [ ] 20.2 Write comprehensive test suites
+  - [ ] 21.2 Write comprehensive test suites
     - Create unit tests for components and composables
     - Build integration tests for user workflows
     - Implement E2E tests for critical business processes
     - _Requirements: All requirements need testing coverage_
 
-- [ ] 21. Performance Optimization and Deployment
-  - [ ] 21.1 Implement performance optimizations
+- [ ] 22. Performance Optimization and Deployment
+  - [ ] 22.1 Implement performance optimizations
     - Add route-based code splitting
     - Implement component lazy loading
     - Optimize bundle size and caching strategies
     - _Requirements: 16.4_
 
-  - [ ] 21.2 Configure deployment and CI/CD
+  - [ ] 22.2 Configure deployment and CI/CD
     - Set up build optimization for production
     - Configure deployment pipeline
     - Add performance monitoring and error tracking

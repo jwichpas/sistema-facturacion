@@ -1,12 +1,21 @@
 import { supabase } from '@/services/supabase'
-import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
-import type { PartyContact, PartyWithDetails, PartyFilters, DocumentType } from '@/types'
+import type { Database } from '@/types/database'
+import type { Party, PartyContact, PartyWithDetails, PartyFilters, DocumentType } from '@/types'
+import {
+  transformPartyFromDB,
+  transformPartiesFromDB,
+  transformPartyContactFromDB,
+  transformPartyToDB
+} from '@/utils/typeTransformers'
 
-export type Party = Tables<'parties'>
-export type PartyInsert = TablesInsert<'parties'>
-export type PartyUpdate = TablesUpdate<'parties'>
-export type PartyContactInsert = TablesInsert<'party_contacts'>
-export type PartyContactUpdate = TablesUpdate<'party_contacts'>
+// Database types for internal use
+type DbParty = Database['public']['Tables']['parties']['Row']
+type DbPartyContact = Database['public']['Tables']['party_contacts']['Row']
+
+export type PartyInsert = Database['public']['Tables']['parties']['Insert']
+export type PartyUpdate = Database['public']['Tables']['parties']['Update']
+export type PartyContactInsert = Database['public']['Tables']['party_contacts']['Insert']
+export type PartyContactUpdate = Database['public']['Tables']['party_contacts']['Update']
 
 // SUNAT Document Types - Catálogo 06
 const SUNAT_DOCUMENT_TYPES: DocumentType[] = [
@@ -188,8 +197,9 @@ export default class PartyService {
     const { data, error } = await query.order('fullname')
     if (error) throw error
 
-    // Enhance with document type descriptions and contact counts
-    const parties: PartyListItem[] = (data || []).map(party => {
+    // Transform database types to application types and enhance with additional data
+    const parties: PartyListItem[] = (data || []).map(dbParty => {
+      const party = transformPartyFromDB(dbParty)
       const docType = this.getDocumentType(party.doc_type)
       return {
         ...party,
@@ -212,7 +222,7 @@ export default class PartyService {
       .single()
 
     if (error) throw error
-    return data
+    return data ? transformPartyFromDB(data) : null
   }
 
   static async getPartyWithDetails(companyId: string, id: string): Promise<PartyWithDetails | null> {
@@ -229,12 +239,13 @@ export default class PartyService {
     if (error) throw error
     if (!data) return null
 
-    const docType = this.getDocumentType(data.doc_type)
+    const party = transformPartyFromDB(data)
+    const docType = this.getDocumentType(party.doc_type)
 
     return {
-      ...data,
-      document_type_description: docType?.description || data.doc_type,
-      contacts: data.party_contacts || []
+      ...party,
+      document_type_description: docType?.description || party.doc_type,
+      contacts: (data.party_contacts || []).map((contact: DbPartyContact) => transformPartyContactFromDB(contact))
     }
   }
 
@@ -268,7 +279,7 @@ export default class PartyService {
       .single()
 
     if (error) throw error
-    return data
+    return transformPartyFromDB(data)
   }
 
   static async updateParty(id: string, payload: Omit<PartyUpdate, 'fullname'>): Promise<Party> {
@@ -328,7 +339,7 @@ export default class PartyService {
       .single()
 
     if (error) throw error
-    return data
+    return transformPartyFromDB(data)
   }
 
   static async deleteParty(id: string): Promise<void> {
@@ -346,7 +357,7 @@ export default class PartyService {
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data || []
+    return (data || []).map(transformPartyContactFromDB)
   }
 
   static async createContact(payload: PartyContactInsert): Promise<PartyContact> {
@@ -357,7 +368,7 @@ export default class PartyService {
       .single()
 
     if (error) throw error
-    return data
+    return transformPartyContactFromDB(data)
   }
 
   static async updateContact(id: string, payload: PartyContactUpdate): Promise<PartyContact> {
@@ -369,7 +380,7 @@ export default class PartyService {
       .single()
 
     if (error) throw error
-    return data
+    return transformPartyContactFromDB(data)
   }
 
   static async deleteContact(id: string): Promise<void> {
@@ -405,7 +416,7 @@ export default class PartyService {
       .single()
 
     if (error) return null
-    return data
+    return data ? transformPartyFromDB(data) : null
   }
 
   // Transaction history (placeholder - would integrate with sales/purchase modules)
@@ -432,7 +443,7 @@ export default class PartyService {
       .in('id', ids)
 
     if (error) throw error
-    return data || []
+    return transformPartiesFromDB(data || [])
   }
 
   static async getCustomers(companyId: string, filters: Omit<PartyFilters, 'isCustomer'> = {}): Promise<PartyListItem[]> {
