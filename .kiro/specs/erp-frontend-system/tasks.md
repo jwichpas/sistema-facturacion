@@ -170,48 +170,48 @@
     - Implement payment processing interface
     - _Requirements: 7.2, 7.4_
 
-- [ ] 11. Purchase Management System
-  - [ ] 11.1 Create purchase document store and services
+- [x] 11. Purchase Management System
+  - [x] 11.1 Create purchase document store and services
     - Implement purchase store with document tracking
     - Create purchase service with supplier integration
     - Add automatic inventory updates on receipt
     - _Requirements: 8.1, 8.2_
 
-  - [ ] 11.2 Build purchase management components
+  - [x] 11.2 Build purchase management components
     - Create purchase document forms with validation
     - Build supplier selection and management
     - Implement purchase history and tracking
     - _Requirements: 8.1, 8.3, 8.4_
 
-- [ ] 12. Warehouse and Transfer Management
-  - [ ] 12.1 Create warehouse management store and services
+- [x] 12. Warehouse and Transfer Management
+  - [x] 12.1 Create warehouse management store and services
     - Implement warehouse store with zone management using warehouses and warehouse_zones tables
     - Create transfer service for stock movements using stock_transfers and stock_transfer_items tables
     - Add capacity tracking and utilization using capacity_kg fields and dimensional calculations
     - Implement vehicle and driver management for transfers using vehicles and drivers tables
     - _Requirements: 9.1, 9.4_
 
-  - [ ] 12.2 Build warehouse management components
+  - [x] 12.2 Build warehouse management components
     - Create warehouse configuration interface
     - Build zone management with capacity display
     - Implement transfer creation and tracking forms
     - _Requirements: 9.1, 9.2_
 
-  - [ ] 12.3 Implement 3D warehouse visualization
+  - [x] 12.3 Implement 3D warehouse visualization
     - Create 3D warehouse viewer using Three.js
     - Add interactive zone navigation
     - Implement stock level visualization in 3D space
     - _Requirements: 9.3_
 
-- [ ] 13. Electronic Invoicing Integration
-  - [ ] 13.1 Create electronic invoicing service
+- [x] 13. Electronic Invoicing Integration
+  - [x] 13.1 Create electronic invoicing service
     - Implement Greenter integration for XML generation using existing greenter_xml field in sales_docs
     - Create SUNAT submission handling with status tracking using greenter_status, greenter_ticket fields
     - Add CDR processing and storage using greenter_cdr and greenter_hash fields
     - Implement electronic billing configuration management using companies table SOL credentials
     - _Requirements: 10.1, 10.2, 10.3_
 
-  - [ ] 13.2 Build electronic invoicing components
+  - [x] 13.2 Build electronic invoicing components
     - Create invoice status tracking interface
     - Build error handling and retry mechanisms
     - Implement document status dashboard
